@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "FasoDocs API - Authentication",
+    "_postman_id": "fasodocs-auth-collection",
+    "description": "Collection complète pour l'authentification FasoDocs API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Inscription",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Traoré\",\n  \"prenom\": \"Amadou\",\n  \"email\": \"amadou.traore@example.com\",\n  \"telephone\": \"76543210\",\n  \"motDePasse\": \"password123\",\n  \"languePreferee\": \"fr\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/inscription",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "inscription"]
+        },
+        "description": "Inscription d'un nouveau citoyen dans le système FasoDocs"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Connexion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.token) {",
+              "    pm.environment.set(\"token\", jsonData.token);",
+              "    pm.environment.set(\"userId\", jsonData.id);",
+              "    console.log(\"Token sauvegardé: \" + jsonData.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifiant\": \"amadou.traore@example.com\",\n  \"motDePasse\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/connexion",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "connexion"]
+        },
+        "description": "Connexion avec email ou téléphone. Le token JWT est automatiquement sauvegardé dans les variables d'environnement."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Connexion avec Téléphone",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.token) {",
+              "    pm.environment.set(\"token\", jsonData.token);",
+              "    pm.environment.set(\"userId\", jsonData.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifiant\": \"76543210\",\n  \"motDePasse\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/connexion",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "connexion"]
+        },
+        "description": "Connexion avec numéro de téléphone au lieu de l'email"
+      },
+      "response": []
+    },
+    {
+      "name": "4. Vérifier Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/verify?code=abc123-xyz789",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "verify"],
+          "query": [
+            {
+              "key": "code",
+              "value": "abc123-xyz789",
+              "description": "Code de vérification reçu par email"
+            }
+          ]
+        },
+        "description": "Vérifier l'email avec le code reçu"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Obtenir Profil",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/profil",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "profil"]
+        },
+        "description": "Récupérer le profil du citoyen connecté (nécessite authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Mettre à Jour Profil",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Traoré\",\n  \"prenom\": \"Amadou Bakary\",\n  \"email\": \"amadou.traore@newmail.com\",\n  \"telephone\": \"76543210\",\n  \"languePreferee\": \"bm\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/profil",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "profil"]
+        },
+        "description": "Mettre à jour les informations du profil (nécessite authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "7. Changer Mot de Passe",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Traoré\",\n  \"prenom\": \"Amadou\",\n  \"email\": \"amadou.traore@example.com\",\n  \"telephone\": \"76543210\",\n  \"languePreferee\": \"fr\",\n  \"ancienMotDePasse\": \"password123\",\n  \"nouveauMotDePasse\": \"newpassword456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/profil",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "profil"]
+        },
+        "description": "Changer le mot de passe en fournissant l'ancien et le nouveau"
+      },
+      "response": []
+    },
+    {
+      "name": "8. Déconnexion",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/deconnexion",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "deconnexion"]
+        },
+        "description": "Déconnexion du citoyen (supprime le token FCM si présent)"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api",
+      "type": "string"
+    }
+  ]
+}
