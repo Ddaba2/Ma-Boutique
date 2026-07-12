@@ -54,9 +54,10 @@ class DashboardController extends Controller
             ->groupBy('mode_paiement')
             ->get();
 
-        $labelsPaiement = $parModePaiement->pluck('mode_paiement')->map(fn($m) => match($m) {
-            'espece' => 'Espèces', 'carte' => 'Carte', 'mobile' => 'Mobile', default => 'Autre'
-        })->toArray();
+        $libellesModePaiement = Vente::libellesModePaiement();
+        $labelsPaiement = $parModePaiement->pluck('mode_paiement')
+            ->map(fn($m) => $libellesModePaiement[$m] ?? ucfirst($m))
+            ->toArray();
         $dataPaiement = $parModePaiement->pluck('total')->toArray();
 
         // Graphique 3 : Top 10 produits vendus (30 jours)

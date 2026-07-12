@@ -47,4 +47,19 @@ class Vente extends Model
         $count = self::lockForUpdate()->count() + 1;
         return 'VENTE' . date('Y') . str_pad($count, 5, '0', STR_PAD_LEFT);
     }
+
+    public static function libellesModePaiement(): array
+    {
+        return [
+            'espece' => 'Espèce',
+            'carte' => 'Carte bancaire',
+            'mobile' => 'Mobile Money',
+            'autre' => 'Autre',
+        ];
+    }
+
+    public function modePaiementLabel(): string
+    {
+        return self::libellesModePaiement()[$this->mode_paiement] ?? ucfirst($this->mode_paiement);
+    }
 }

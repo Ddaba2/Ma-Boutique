@@ -72,7 +72,7 @@
                                 <td class="fw-bold">{{ number_format($vente->total, 0, ',', ' ') }} F</td>
                                 <td>
                                     <span class="badge bg-{{ match($vente->mode_paiement) { 'espece' => 'success', 'carte' => 'primary', 'mobile' => 'info', default => 'secondary' } }}">
-                                        {{ ucfirst($vente->mode_paiement) }}
+                                        {{ $vente->modePaiementLabel() }}
                                     </span>
                                 </td>
                                 <td>

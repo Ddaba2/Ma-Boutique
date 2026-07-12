@@ -27,7 +27,7 @@ class VenteController extends Controller
         $request->validate([
             'client_nom' => 'required|string|max:255',
             'client_telephone' => 'nullable|string|max:20',
-            'mode_paiement' => 'required|string',
+            'mode_paiement' => 'required|in:espece,carte,mobile,autre',
             'montant_recu' => 'required|numeric|min:0',
             'produit_ids' => 'required|array|min:1',
             'produit_ids.*' => 'required|exists:produits,id',

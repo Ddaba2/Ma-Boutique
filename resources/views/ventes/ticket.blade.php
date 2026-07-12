@@ -97,7 +97,7 @@
     <hr>
 
     <div class="ligne bold large"><span>TOTAL</span><span>{{ number_format($vente->total, 0, ',', ' ') }} F</span></div>
-    <div class="ligne"><span>Mode de paiement</span><span>{{ ucfirst($vente->mode_paiement) }}</span></div>
+    <div class="ligne"><span>Mode de paiement</span><span>{{ $vente->modePaiementLabel() }}</span></div>
     @if($vente->montant_recu)
         <div class="ligne"><span>Reçu</span><span>{{ number_format($vente->montant_recu, 0, ',', ' ') }} F</span></div>
         <div class="ligne"><span>Monnaie</span><span>{{ number_format($vente->monnaie, 0, ',', ' ') }} F</span></div>

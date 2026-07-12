@@ -77,6 +77,40 @@ class VenteTest extends TestCase
         $this->assertSame(0, Vente::count());
     }
 
+    public function test_une_vente_accepte_le_mobile_money_comme_mode_de_paiement(): void
+    {
+        $user = User::factory()->create(['role' => 'caissier', 'active' => true]);
+        $produit = $this->produit();
+
+        $this->actingAs($user)->post('/ventes', [
+            'client_nom' => 'Client Test',
+            'mode_paiement' => 'mobile',
+            'montant_recu' => 2000,
+            'produit_ids' => [$produit->id],
+            'quantites' => [2],
+            'prix_unitaires' => [1000],
+        ])->assertRedirect(route('ventes.index'));
+
+        $this->assertSame('mobile', Vente::first()->mode_paiement);
+    }
+
+    public function test_une_vente_refuse_un_mode_de_paiement_invalide(): void
+    {
+        $user = User::factory()->create(['role' => 'caissier', 'active' => true]);
+        $produit = $this->produit();
+
+        $this->actingAs($user)->post('/ventes', [
+            'client_nom' => 'Client Test',
+            'mode_paiement' => 'mobile_money',
+            'montant_recu' => 2000,
+            'produit_ids' => [$produit->id],
+            'quantites' => [2],
+            'prix_unitaires' => [1000],
+        ])->assertSessionHasErrors('mode_paiement');
+
+        $this->assertSame(0, Vente::count());
+    }
+
     public function test_le_ticket_de_caisse_saffiche_avec_les_bonnes_informations(): void
     {
         $user = User::factory()->create(['role' => 'caissier', 'active' => true]);

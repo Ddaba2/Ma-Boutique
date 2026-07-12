@@ -208,7 +208,7 @@
 
     @if($vente->mode_paiement)
         <div class="payment-info">
-            <strong>Mode de paiement:</strong> {{ ucfirst($vente->mode_paiement) }}
+            <strong>Mode de paiement:</strong> {{ $vente->modePaiementLabel() }}
             @if($vente->montant_recu)
                 <br><strong>Montant reçu:</strong> {{ number_format($vente->montant_recu, 0, ',', ' ') }} FCFA
             @endif

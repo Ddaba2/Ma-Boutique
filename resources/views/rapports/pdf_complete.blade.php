@@ -99,7 +99,7 @@
                             <td>{{ $vente->created_at->format('H:i') }}</td>
                             <td>{{ $vente->client_nom ?? 'Client anonyme' }}</td>
                             <td>{{ number_format($vente->total, 0, ',', ' ') }} FCFA</td>
-                            <td>{{ ucfirst($vente->mode_paiement) }}</td>
+                            <td>{{ $vente->modePaiementLabel() }}</td>
                             <td>{{ ucfirst($vente->statut) }}</td>
                             <td>{{ $vente->detailVentes->sum('quantite') }}</td>
                             <td>{{ $vente->notes ?? '-' }}</td>

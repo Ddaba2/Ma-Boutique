@@ -122,7 +122,7 @@
                                     <td>{{ $vente->detailVentes->sum('quantite') }}</td>
                                     <td class="fw-bold text-primary">{{ number_format($vente->total, 0, ',', ' ') }} FCFA</td>
                                     <td>
-                                        <span class="badge bg-info">{{ ucfirst($vente->mode_paiement) }}</span>
+                                        <span class="badge bg-info">{{ $vente->modePaiementLabel() }}</span>
                                     </td>
                                     <td>
                                         <span class="badge bg-success">{{ ucfirst($vente->statut) }}</span>

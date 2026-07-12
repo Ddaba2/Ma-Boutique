@@ -159,10 +159,9 @@
                                         <label for="mode_paiement" class="form-label fw-semibold mb-1">Mode de paiement *</label>
                                         <select class="form-select form-select-lg" id="mode_paiement" name="mode_paiement" required>
                                             <option value="espece" selected>Espèce</option>
-                                            <option value="mobile_money">Mobile Money</option>
-                                            <option value="virement_bancaire">Virement Bancaire</option>
-                                            <option value="cheque">Chèque</option>
-                                            <option value="autres">Autres</option>
+                                            <option value="mobile">Mobile Money</option>
+                                            <option value="carte">Carte bancaire</option>
+                                            <option value="autre">Autre</option>
                                         </select>
                                     </div>
                                 </div>

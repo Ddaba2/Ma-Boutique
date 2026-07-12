@@ -44,7 +44,7 @@
                         <table class="table table-borderless">
                             <tr>
                                 <td class="text-muted fw-semibold">Mode de paiement</td>
-                                <td><span class="badge bg-info">{{ ucfirst($vente->mode_paiement) }}</span></td>
+                                <td><span class="badge bg-info">{{ $vente->modePaiementLabel() }}</span></td>
                             </tr>
                             <tr>
                                 <td class="text-muted fw-semibold">Statut</td>

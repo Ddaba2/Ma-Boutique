@@ -154,7 +154,7 @@
                     <td>{{ $vente->client_nom ?? 'Client anonyme' }}</td>
                     <td>{{ $vente->detailVentes->sum('quantite') }}</td>
                     <td><strong>{{ number_format($vente->total, 0, ',', ' ') }} FCFA</strong></td>
-                    <td>{{ ucfirst($vente->mode_paiement) }}</td>
+                    <td>{{ $vente->modePaiementLabel() }}</td>
                     <td>{{ ucfirst($vente->statut) }}</td>
                 </tr>
             @endforeach
