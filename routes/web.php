@@ -56,6 +56,7 @@ Route::middleware(['auth'])->group(function () {
     // Ventes
     Route::resource('ventes', VenteController::class);
     Route::get('/ventes/{vente}/facture', [VenteController::class, 'facture'])->name('ventes.facture');
+    Route::get('/ventes/{vente}/ticket', [VenteController::class, 'ticket'])->name('ventes.ticket');
 
     // Stocks
     Route::get('/stocks', [\App\Http\Controllers\StockController::class, 'index'])->name('stocks.index');

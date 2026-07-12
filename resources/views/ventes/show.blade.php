@@ -8,11 +8,19 @@
     <div class="col-md-8">
         <!-- Informations de la vente -->
         <div class="card animate-fadeInUp mb-4">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0 fw-bold">
                     <i class="fas fa-receipt me-2 text-primary"></i>
                     Vente #{{ $vente->reference }}
                 </h5>
+                <div>
+                    <a href="{{ route('ventes.ticket', $vente) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                        <i class="fas fa-receipt me-1"></i>Ticket de caisse
+                    </a>
+                    <a href="{{ route('ventes.facture', $vente) }}" class="btn btn-sm btn-outline-danger" target="_blank">
+                        <i class="fas fa-file-pdf me-1"></i>Facture PDF
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 <div class="row">

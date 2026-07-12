@@ -132,6 +132,9 @@
                                             <a href="{{ route('ventes.facture', $vente) }}" class="btn btn-sm btn-outline-danger" title="Facture PDF" target="_blank">
                                                 <i class="fas fa-file-pdf"></i>
                                             </a>
+                                            <a href="{{ route('ventes.ticket', $vente) }}" class="btn btn-sm btn-outline-secondary" title="Ticket de caisse" target="_blank">
+                                                <i class="fas fa-receipt"></i>
+                                            </a>
                                             <a href="{{ route('ventes.show', $vente) }}" class="btn btn-sm btn-outline-primary" title="Voir">
                                                 <i class="fas fa-eye"></i>
                                             </a>

@@ -50,6 +50,7 @@ class VenteController extends Controller
                 $prixUnitaire = $request->prix_unitaires[$index];
 
                 if ($produit->stock_actuel < $qty) {
+                    DB::rollback();
                     return back()->with('error', 'Stock insuffisant pour le produit : ' . $produit->nom . '. Stock disponible: ' . $produit->stock_actuel)->withInput();
                 }
 
@@ -193,6 +194,15 @@ class VenteController extends Controller
             return redirect()->route('ventes.index')
                 ->with('error', 'Erreur lors de la suppression de la vente.');
         }
+    }
+
+    public function ticket(Vente $vente, Request $request)
+    {
+        $vente->load('detailVentes.produit');
+        $entreprise = \App\Models\Entreprise::first();
+        $largeur = $request->integer('largeur', 80) === 58 ? 58 : 80;
+
+        return view('ventes.ticket', compact('vente', 'entreprise', 'largeur'));
     }
 
     public function facture(Vente $vente)

@@ -76,4 +76,27 @@ class VenteTest extends TestCase
         $this->assertSame(1, $produit->stock_actuel);
         $this->assertSame(0, Vente::count());
     }
+
+    public function test_le_ticket_de_caisse_saffiche_avec_les_bonnes_informations(): void
+    {
+        $user = User::factory()->create(['role' => 'caissier', 'active' => true]);
+        $produit = $this->produit();
+
+        $this->actingAs($user)->post('/ventes', [
+            'client_nom' => 'Client Test',
+            'mode_paiement' => 'espece',
+            'montant_recu' => 3000,
+            'produit_ids' => [$produit->id],
+            'quantites' => [2],
+            'prix_unitaires' => [1000],
+        ]);
+
+        $vente = Vente::first();
+
+        $this->actingAs($user)->get(route('ventes.ticket', $vente))
+            ->assertOk()
+            ->assertSee($vente->reference)
+            ->assertSee('Produit test')
+            ->assertSee('2 000');
+    }
 }
