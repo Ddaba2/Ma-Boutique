@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Categorie;
 use App\Models\Produit;
+use App\Models\BoutiqueProduit;
+use App\Support\BoutiqueContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -11,7 +13,21 @@ class ProduitController extends Controller
 {
     public function index()
     {
-        $produits = Produit::with('categorie')->paginate(10);
+        $boutiqueId = BoutiqueContext::id();
+
+        $produits = Produit::with(['categorie', 'boutiqueProduits' => function ($q) use ($boutiqueId) {
+            $q->dansBoutique($boutiqueId);
+        }])->paginate(10);
+
+        // Le stock affiché est celui de la boutique courante, pas les colonnes
+        // héritées sur produits (conservées uniquement pour compatibilité).
+        $produits->getCollection()->transform(function (Produit $produit) {
+            $stock = $produit->boutiqueProduits->first();
+            $produit->stock_actuel = $stock->stock_actuel ?? 0;
+            $produit->stock_min = $stock->stock_min ?? 5;
+            return $produit;
+        });
+
         return view('produits.index', compact('produits'));
     }
 
@@ -37,7 +53,7 @@ class ProduitController extends Controller
 
         DB::beginTransaction();
         try {
-            Produit::create([
+            $produit = Produit::create([
                 'reference' => Produit::generateReference(),
                 'nom' => $request->nom,
                 'description' => $request->description,
@@ -50,6 +66,16 @@ class ProduitController extends Controller
                 'image' => $request->image,
                 'active' => true
             ]);
+
+            // Catalogue partagé, stock séparé : la boutique courante reçoit le
+            // stock initial saisi, les autres boutiques démarrent à 0.
+            BoutiqueProduit::initialiserPourNouveauProduit(
+                $produit,
+                BoutiqueContext::id(),
+                (int) $request->stock_actuel,
+                (int) $request->stock_min,
+                (int) $request->stock_max
+            );
 
             DB::commit();
 
@@ -144,6 +170,7 @@ class ProduitController extends Controller
         $errors  = [];
         $categories = Categorie::pluck('id', 'nom')->toArray();
         $defaultCategorie = Categorie::first()?->id;
+        $boutiqueId = BoutiqueContext::id();
 
         DB::beginTransaction();
         try {
@@ -165,18 +192,30 @@ class ProduitController extends Controller
                     $categorieId = $categories[$data['categorie']] ?? $defaultCategorie;
                 }
 
-                Produit::create([
+                $stockActuel = (int) ($data['stock_actuel'] ?? 0);
+                $stockMin = (int) ($data['stock_min'] ?? 5);
+                $stockMax = (int) ($data['stock_max'] ?? 100);
+
+                $produitImporte = Produit::create([
                     'reference'    => Produit::generateReference(),
                     'nom'          => $nom,
                     'description'  => $data['description'] ?? null,
                     'prix_achat'   => (float) str_replace(',', '.', $data['prix_achat'] ?? 0),
                     'prix_vente'   => (float) str_replace(',', '.', $data['prix_vente'] ?? 0),
-                    'stock_actuel' => (int) ($data['stock_actuel'] ?? 0),
-                    'stock_min'    => (int) ($data['stock_min'] ?? 5),
-                    'stock_max'    => (int) ($data['stock_max'] ?? 100),
+                    'stock_actuel' => $stockActuel,
+                    'stock_min'    => $stockMin,
+                    'stock_max'    => $stockMax,
                     'categorie_id' => $categorieId,
                     'active'       => true,
                 ]);
+
+                BoutiqueProduit::initialiserPourNouveauProduit(
+                    $produitImporte,
+                    $boutiqueId,
+                    $stockActuel,
+                    $stockMin,
+                    $stockMax
+                );
 
                 $created++;
             }

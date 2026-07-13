@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Boutique;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,8 @@ class UsersSeeder extends Seeder
 {
     public function run(): void
     {
+        $boutiquePrincipale = Boutique::first();
+
         if (!User::where('email', 'admin@gesbou.com')->exists()) {
             $password = Str::password(12);
 
@@ -32,11 +35,12 @@ class UsersSeeder extends Seeder
         // Compte de démonstration : uniquement en local/tests, jamais seedé en production.
         if (app()->environment(['local', 'testing']) && !User::where('email', 'test@gesbou.com')->exists()) {
             User::create([
-                'name'     => 'Utilisateur Test',
-                'email'    => 'test@gesbou.com',
-                'password' => Hash::make('test123'),
-                'role'     => 'caissier',
-                'active'   => true,
+                'name'        => 'Utilisateur Test',
+                'email'       => 'test@gesbou.com',
+                'password'    => Hash::make('test123'),
+                'role'        => 'caissier',
+                'boutique_id' => $boutiquePrincipale?->id,
+                'active'      => true,
             ]);
         }
     }

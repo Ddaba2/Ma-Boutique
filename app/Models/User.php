@@ -24,7 +24,13 @@ class User extends Authenticatable
         'password',
         'role',
         'active',
+        'boutique_id',
     ];
+
+    public function boutique()
+    {
+        return $this->belongsTo(Boutique::class);
+    }
 
     /**
      * The attributes that should be hidden for serialization.

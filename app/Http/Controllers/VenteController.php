@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Vente;
 use App\Models\DetailVente;
 use App\Models\Produit;
+use App\Models\BoutiqueProduit;
+use App\Support\BoutiqueContext;
 use Illuminate\Support\Facades\DB;
 
 class VenteController extends Controller
@@ -18,8 +20,7 @@ class VenteController extends Controller
 
     public function create()
     {
-        $produits = Produit::where('active', true)->where('stock_actuel', '>', 0)->get();
-        return view('ventes.create', compact('produits'));
+        return view('ventes.create');
     }
 
     public function store(Request $request)
@@ -37,21 +38,29 @@ class VenteController extends Controller
             'prix_unitaires.*' => 'required|numeric|min:0',
         ]);
 
+        $boutiqueId = BoutiqueContext::id();
+
         try {
             DB::beginTransaction();
 
             $total = 0;
             $items = [];
 
-            // Valider les stocks et calculer le total
+            // Valider les stocks (de la boutique courante) et calculer le total
             foreach ($request->produit_ids as $index => $produitId) {
                 $produit = Produit::findOrFail($produitId);
                 $qty = $request->quantites[$index];
                 $prixUnitaire = $request->prix_unitaires[$index];
 
-                if ($produit->stock_actuel < $qty) {
+                $stockBoutique = BoutiqueProduit::dansBoutique($boutiqueId)
+                    ->where('produit_id', $produitId)
+                    ->lockForUpdate()
+                    ->first();
+                $stockDisponible = $stockBoutique->stock_actuel ?? 0;
+
+                if ($stockDisponible < $qty) {
                     DB::rollback();
-                    return back()->with('error', 'Stock insuffisant pour le produit : ' . $produit->nom . '. Stock disponible: ' . $produit->stock_actuel)->withInput();
+                    return back()->with('error', 'Stock insuffisant pour le produit : ' . $produit->nom . '. Stock disponible: ' . $stockDisponible)->withInput();
                 }
 
                 $ligneTotal = $qty * $prixUnitaire;
@@ -59,6 +68,7 @@ class VenteController extends Controller
 
                 $items[] = [
                     'produit' => $produit,
+                    'stock_boutique' => $stockBoutique,
                     'quantite' => $qty,
                     'prix_unitaire' => $prixUnitaire,
                     'total_ligne' => $ligneTotal
@@ -95,9 +105,8 @@ class VenteController extends Controller
                     'total_ligne' => $item['total_ligne']
                 ]);
 
-                // Mettre à jour le stock
-                $produit->stock_actuel -= $qty;
-                $produit->save();
+                // Mettre à jour le stock de la boutique courante
+                $item['stock_boutique']->decrement('stock_actuel', $qty);
 
                 // Créer le mouvement de stock pour la traçabilité des sorties (ventes)
                 \App\Models\MouvementStock::create([
@@ -175,9 +184,12 @@ class VenteController extends Controller
         try {
             DB::beginTransaction();
 
-            // Remettre les produits en stock
+            // Remettre les produits en stock, dans la boutique où la vente a eu lieu
             foreach ($vente->detailVentes as $detail) {
-                $detail->produit->increment('stock_actuel', $detail->quantite);
+                BoutiqueProduit::dansBoutique($vente->boutique_id)
+                    ->where('produit_id', $detail->produit_id)
+                    ->first()
+                    ?->increment('stock_actuel', $detail->quantite);
             }
 
             // Supprimer la vente

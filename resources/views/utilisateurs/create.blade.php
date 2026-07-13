@@ -30,6 +30,16 @@
                             </select>
                             @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
+                        <div class="col-12" id="champ-boutique">
+                            <label class="form-label fw-semibold">Boutique *</label>
+                            <select name="boutique_id" class="form-select @error('boutique_id') is-invalid @enderror">
+                                @foreach($boutiques as $boutique)
+                                    <option value="{{ $boutique->id }}" {{ (int) old('boutique_id') === $boutique->id ? 'selected' : '' }}>{{ $boutique->nom }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Non applicable pour un gérant, qui supervise toutes les boutiques.</small>
+                            @error('boutique_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Mot de passe *</label>
                             <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" required minlength="6">
@@ -61,4 +71,18 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const roleSelect = document.querySelector('select[name="role"]');
+    const champBoutique = document.getElementById('champ-boutique');
+
+    function toggleBoutique() {
+        champBoutique.style.display = roleSelect.value === 'gerant' ? 'none' : '';
+    }
+
+    roleSelect.addEventListener('change', toggleBoutique);
+    toggleBoutique();
+});
+</script>
 @endsection

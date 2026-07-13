@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Boutique;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -10,30 +11,33 @@ class UtilisateurController extends Controller
 {
     public function index()
     {
-        $utilisateurs = User::orderBy('name')->get();
+        $utilisateurs = User::with('boutique')->orderBy('name')->get();
         return view('utilisateurs.index', compact('utilisateurs'));
     }
 
     public function create()
     {
-        return view('utilisateurs.create');
+        $boutiques = Boutique::where('active', true)->orderBy('nom')->get();
+        return view('utilisateurs.create', compact('boutiques'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
-            'role'     => 'required|in:gerant,gestionnaire,caissier',
+            'name'        => 'required|string|max:255',
+            'email'       => 'required|email|unique:users,email',
+            'password'    => 'required|string|min:6|confirmed',
+            'role'        => 'required|in:gerant,gestionnaire,caissier',
+            'boutique_id' => 'nullable|exists:boutiques,id|required_unless:role,gerant',
         ]);
 
         User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role'     => $request->role,
-            'active'   => true,
+            'name'        => $request->name,
+            'email'       => $request->email,
+            'password'    => Hash::make($request->password),
+            'role'        => $request->role,
+            'boutique_id' => $request->role === 'gerant' ? null : $request->boutique_id,
+            'active'      => true,
         ]);
 
         return redirect()->route('utilisateurs.index')
@@ -42,24 +46,27 @@ class UtilisateurController extends Controller
 
     public function edit(User $utilisateur)
     {
-        return view('utilisateurs.edit', compact('utilisateur'));
+        $boutiques = Boutique::where('active', true)->orderBy('nom')->get();
+        return view('utilisateurs.edit', compact('utilisateur', 'boutiques'));
     }
 
     public function update(Request $request, User $utilisateur)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email,' . $utilisateur->id,
-            'role'     => 'required|in:gerant,gestionnaire,caissier',
-            'active'   => 'boolean',
-            'password' => 'nullable|string|min:6|confirmed',
+            'name'        => 'required|string|max:255',
+            'email'       => 'required|email|unique:users,email,' . $utilisateur->id,
+            'role'        => 'required|in:gerant,gestionnaire,caissier',
+            'boutique_id' => 'nullable|exists:boutiques,id|required_unless:role,gerant',
+            'active'      => 'boolean',
+            'password'    => 'nullable|string|min:6|confirmed',
         ]);
 
         $data = [
-            'name'   => $request->name,
-            'email'  => $request->email,
-            'role'   => $request->role,
-            'active' => $request->boolean('active', true),
+            'name'        => $request->name,
+            'email'       => $request->email,
+            'role'        => $request->role,
+            'boutique_id' => $request->role === 'gerant' ? null : $request->boutique_id,
+            'active'      => $request->boolean('active', true),
         ];
 
         if ($request->filled('password')) {

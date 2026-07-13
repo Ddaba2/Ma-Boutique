@@ -7,6 +7,7 @@ use App\Models\DetailCommande;
 use App\Models\Fournisseur;
 use App\Models\Produit;
 use App\Models\MouvementStock;
+use App\Models\BoutiqueProduit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -110,7 +111,23 @@ class CommandeController extends Controller
             try {
                 foreach ($commande->details as $detail) {
                     $produit = $detail->produit;
-                    $produit->increment('stock_actuel', $detail->quantite);
+
+                    $stockBoutique = BoutiqueProduit::dansBoutique($commande->boutique_id)
+                        ->where('produit_id', $produit->id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$stockBoutique) {
+                        $stockBoutique = BoutiqueProduit::create([
+                            'boutique_id' => $commande->boutique_id,
+                            'produit_id' => $produit->id,
+                            'stock_actuel' => 0,
+                            'stock_min' => 5,
+                            'stock_max' => 100,
+                        ]);
+                    }
+
+                    $stockBoutique->increment('stock_actuel', $detail->quantite);
 
                     MouvementStock::create([
                         'produit_id'    => $produit->id,

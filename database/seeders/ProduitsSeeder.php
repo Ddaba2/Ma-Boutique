@@ -5,12 +5,15 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Produit;
 use App\Models\Categorie;
+use App\Models\Boutique;
+use App\Models\BoutiqueProduit;
 
 class ProduitsSeeder extends Seeder
 {
     public function run(): void
     {
         $categories = Categorie::all();
+        $boutiquePrincipale = Boutique::first();
 
         $produits = [
             // Boissons
@@ -46,8 +49,9 @@ class ProduitsSeeder extends Seeder
 
         foreach ($produits as $index => $produitData) {
             $categorie = $categories->where('nom', $produitData['categorie'])->first();
+            $stockMax = $produitData['stock_actuel'] * 3;
 
-            Produit::firstOrCreate(
+            $produit = Produit::firstOrCreate(
                 ['reference' => 'PROD' . str_pad($index + 1, 6, '0', STR_PAD_LEFT)],
                 [
                     'nom' => $produitData['nom'],
@@ -56,11 +60,21 @@ class ProduitsSeeder extends Seeder
                     'prix_vente' => $produitData['prix_vente'],
                     'stock_actuel' => $produitData['stock_actuel'],
                     'stock_min' => $produitData['stock_min'],
-                    'stock_max' => $produitData['stock_actuel'] * 3,
+                    'stock_max' => $stockMax,
                     'categorie_id' => $categorie->id,
                     'active' => true
                 ]
             );
+
+            if ($boutiquePrincipale && !BoutiqueProduit::where('boutique_id', $boutiquePrincipale->id)->where('produit_id', $produit->id)->exists()) {
+                BoutiqueProduit::create([
+                    'boutique_id' => $boutiquePrincipale->id,
+                    'produit_id' => $produit->id,
+                    'stock_actuel' => $produitData['stock_actuel'],
+                    'stock_min' => $produitData['stock_min'],
+                    'stock_max' => $stockMax,
+                ]);
+            }
         }
     }
 }

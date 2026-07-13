@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\ClotureCaisse;
 use App\Models\Vente;
+use App\Support\BoutiqueContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class ClotureCaisseController extends Controller
 {
@@ -46,8 +48,14 @@ class ClotureCaisseController extends Controller
 
     public function store(Request $request)
     {
+        $boutiqueId = BoutiqueContext::id();
+
         $request->validate([
-            'date'           => 'required|date|unique:clotures_caisse,date',
+            'date' => [
+                'required',
+                'date',
+                Rule::unique('clotures_caisse', 'date')->where('boutique_id', $boutiqueId),
+            ],
             'fond_ouverture' => 'required|numeric|min:0',
             'notes'          => 'nullable|string',
         ]);

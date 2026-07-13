@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBoutique;
 use Illuminate\Database\Eloquent\Model;
 
 class Commande extends Model
 {
+    use BelongsToBoutique;
+
     protected $fillable = [
-        'reference', 'fournisseur_id', 'statut', 'date_livraison_prevue', 'total', 'notes', 'user_id'
+        'reference', 'boutique_id', 'fournisseur_id', 'statut', 'date_livraison_prevue', 'total', 'notes', 'user_id'
     ];
 
     protected $casts = [

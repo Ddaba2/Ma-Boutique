@@ -3,18 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\MouvementStock;
-use App\Models\Produit;
+use App\Models\BoutiqueProduit;
 use App\Models\Vente;
+use App\Support\BoutiqueContext;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $totalStock        = Produit::sum('stock_actuel');
+        $boutiqueId = BoutiqueContext::id();
+
+        $totalStock        = BoutiqueProduit::dansBoutique($boutiqueId)->sum('stock_actuel');
         $ventesAujourdHui  = Vente::whereDate('created_at', today())->count();
-        $stockFaible       = Produit::stockFaible()->count();
-        $produitsEnRupture = Produit::enRupture()->count();
+        $stockFaible       = BoutiqueProduit::dansBoutique($boutiqueId)->stockFaible()->count();
+        $produitsEnRupture = BoutiqueProduit::dansBoutique($boutiqueId)->enRupture()->count();
 
         $ventesDuJour = Vente::whereDate('created_at', today())
             ->with('detailVentes.produit')
@@ -65,6 +68,7 @@ class DashboardController extends Controller
             ->join('produits', 'detail_ventes.produit_id', '=', 'produits.id')
             ->join('ventes', 'detail_ventes.vente_id', '=', 'ventes.id')
             ->where('ventes.statut', 'terminee')
+            ->where('ventes.boutique_id', $boutiqueId)
             ->where('ventes.created_at', '>=', now()->subDays(29))
             ->select('produits.nom', DB::raw('SUM(detail_ventes.quantite) as total_qty'))
             ->groupBy('produits.id', 'produits.nom')

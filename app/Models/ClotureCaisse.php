@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBoutique;
 use Illuminate\Database\Eloquent\Model;
 
 class ClotureCaisse extends Model
 {
+    use BelongsToBoutique;
+
     protected $table = 'clotures_caisse';
 
     protected $fillable = [
-        'date', 'fond_ouverture', 'total_especes', 'total_carte', 'total_mobile',
+        'date', 'boutique_id', 'fond_ouverture', 'total_especes', 'total_carte', 'total_mobile',
         'total_autre', 'total_ventes', 'nombre_ventes', 'ecart', 'notes', 'statut', 'user_id'
     ];
 

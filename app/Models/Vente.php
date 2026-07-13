@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBoutique;
 use Illuminate\Database\Eloquent\Model;
 
 class Vente extends Model
 {
+    use BelongsToBoutique;
+
     protected $fillable = [
         'reference',
+        'boutique_id',
         'client_id',
         'total',
         'montant_recu',

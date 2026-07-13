@@ -13,6 +13,7 @@ use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\ClotureCaisseController;
 use App\Http\Controllers\UtilisateurController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\BoutiqueController;
 use App\Http\Controllers\Api\ProduitController as ApiProduitController;
 
 // Authentification
@@ -23,18 +24,35 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/', fn() => redirect()->route('dashboard'));
 
 // Routes protégées par l'authentification
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'boutique'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Boutiques (gérant uniquement)
+    Route::middleware(['role:gerant'])->group(function () {
+        Route::resource('boutiques', BoutiqueController::class)->except(['show', 'destroy']);
+        Route::get('/boutiques-selectionner', [BoutiqueController::class, 'selectionner'])->name('boutiques.selectionner');
+        Route::post('/boutique/switch', [BoutiqueController::class, 'switch'])->name('boutiques.switch');
+    });
+
     // API interne (notifications stock bas)
     Route::get('/api/produits/search', [ApiProduitController::class, 'search'])->name('api.produits.search');
     Route::get('/api/stock/alertes', function () {
-        $produits = \App\Models\Produit::whereColumn('stock_actuel', '<=', 'stock_min')
-            ->where('active', true)
-            ->select('id', 'nom', 'stock_actuel', 'stock_min', 'reference')
+        $stocks = \App\Models\BoutiqueProduit::dansBoutique(\App\Support\BoutiqueContext::id())
+            ->enAlerte()
+            ->whereHas('produit', fn($q) => $q->where('active', true))
+            ->with('produit')
             ->get();
+
+        $produits = $stocks->map(fn($s) => [
+            'id' => $s->produit->id,
+            'nom' => $s->produit->nom,
+            'reference' => $s->produit->reference,
+            'stock_actuel' => $s->stock_actuel,
+            'stock_min' => $s->stock_min,
+        ]);
+
         return response()->json($produits);
     })->name('api.stock.alertes');
 

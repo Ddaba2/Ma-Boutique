@@ -5,25 +5,34 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Produit;
 use App\Models\MouvementStock;
+use App\Models\BoutiqueProduit;
 use App\Models\Categorie;
+use App\Support\BoutiqueContext;
 use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
 {
     public function index()
     {
+        $boutiqueId = BoutiqueContext::id();
         $categories = Categorie::where('active', true)->get();
-        $produits = Produit::with('categorie')
-            ->when(request('categorie_id'), function($query, $categorieId) {
-                return $query->where('categorie_id', $categorieId);
+
+        $stocks = BoutiqueProduit::dansBoutique($boutiqueId)
+            ->with('produit.categorie')
+            ->when(request('categorie_id'), function ($query, $categorieId) {
+                return $query->whereHas('produit', fn($q) => $q->where('categorie_id', $categorieId));
             })
             ->parStatutStock(request('statut_stock'))
             ->get();
 
+        // Vue historique inchangée : on fusionne les infos catalogue (Produit)
+        // et le stock de la boutique courante (BoutiqueProduit) en un seul objet.
+        $produits = BoutiqueProduit::fusionnerAvecCatalogue($stocks);
+
         $totalProduits = $produits->count();
-        $produitsEnRupture = $produits->filter(fn($p) => $p->statutStock() === 'rupture')->count();
-        $produitsStockFaible = $produits->filter(fn($p) => $p->statutStock() === 'faible')->count();
-        $produitsStockNormal = $produits->filter(fn($p) => $p->statutStock() === 'normal')->count();
+        $produitsEnRupture = $stocks->filter(fn($s) => $s->statutStock() === 'rupture')->count();
+        $produitsStockFaible = $stocks->filter(fn($s) => $s->statutStock() === 'faible')->count();
+        $produitsStockNormal = $stocks->filter(fn($s) => $s->statutStock() === 'normal')->count();
 
         $valeurStock = $produits->sum(function($produit) {
             return $produit->stock_actuel * $produit->prix_achat;
@@ -40,7 +49,7 @@ class StockController extends Controller
         });
 
         return view('stocks.index', compact(
-            'produits', 'categories', 'totalProduits', 
+            'produits', 'categories', 'totalProduits',
             'produitsEnRupture', 'produitsStockFaible', 'produitsStockNormal',
             'valeurStock', 'stockParCategorie'
         ));
@@ -67,11 +76,13 @@ class StockController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        $boutiqueId = BoutiqueContext::id();
+
         DB::beginTransaction();
         try {
-            // Rechercher le produit exact ou approchant
+            // Rechercher le produit exact ou approchant (catalogue partagé entre boutiques)
             $produit = Produit::where('nom', $request->produit_nom)->first();
-            
+
             if (!$produit) {
                 $produit = Produit::where('nom', 'like', '%' . $request->produit_nom . '%')->first();
             }
@@ -89,6 +100,9 @@ class StockController extends Controller
                 $produit->stock_min = 5;
                 $produit->active = true;
                 $produit->save();
+
+                // Chaque boutique démarre avec une ligne de stock à 0 pour ce nouveau produit.
+                BoutiqueProduit::initialiserPourNouveauProduit($produit);
             } else {
                 // Mettre à jour les prix si fournis pour un produit existant
                 if ($request->prix_achat) {
@@ -97,6 +111,21 @@ class StockController extends Controller
                 if ($request->prix_vente) {
                     $produit->prix_vente = $request->prix_vente;
                 }
+            }
+
+            $stockBoutique = BoutiqueProduit::dansBoutique($boutiqueId)
+                ->where('produit_id', $produit->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$stockBoutique) {
+                $stockBoutique = BoutiqueProduit::create([
+                    'boutique_id' => $boutiqueId,
+                    'produit_id' => $produit->id,
+                    'stock_actuel' => 0,
+                    'stock_min' => 5,
+                    'stock_max' => 100,
+                ]);
             }
 
             // Déterminer le prix unitaire d'achat pour le mouvement
@@ -129,9 +158,8 @@ class StockController extends Controller
                 'notes' => trim($notesMvt) ?: null
             ]);
 
-            // Mettre à jour le stock actuel
-            $produit->stock_actuel += $request->quantite;
-            $produit->save();
+            // Mettre à jour le stock actuel de la boutique courante
+            $stockBoutique->increment('stock_actuel', $request->quantite);
 
             DB::commit();
 

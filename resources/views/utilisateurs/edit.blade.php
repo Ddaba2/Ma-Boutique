@@ -34,6 +34,15 @@
                                 <option value="0" {{ !old('active', $utilisateur->active) ? 'selected' : '' }}>Inactif</option>
                             </select>
                         </div>
+                        <div class="col-12" id="champ-boutique">
+                            <label class="form-label fw-semibold">Boutique *</label>
+                            <select name="boutique_id" class="form-select">
+                                @foreach($boutiques as $boutique)
+                                    <option value="{{ $boutique->id }}" {{ (int) old('boutique_id', $utilisateur->boutique_id) === $boutique->id ? 'selected' : '' }}>{{ $boutique->nom }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Non applicable pour un gérant, qui supervise toutes les boutiques.</small>
+                        </div>
                         <div class="col-12"><hr><p class="text-muted small">Laissez vide pour ne pas changer le mot de passe</p></div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Nouveau mot de passe</label>
@@ -53,4 +62,18 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const roleSelect = document.querySelector('select[name="role"]');
+    const champBoutique = document.getElementById('champ-boutique');
+
+    function toggleBoutique() {
+        champBoutique.style.display = roleSelect.value === 'gerant' ? 'none' : '';
+    }
+
+    roleSelect.addEventListener('change', toggleBoutique);
+    toggleBoutique();
+});
+</script>
 @endsection

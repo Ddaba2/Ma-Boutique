@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Boutique;
+use App\Models\BoutiqueProduit;
 use App\Models\Categorie;
 use App\Models\Produit;
 use App\Models\User;
@@ -13,30 +15,51 @@ class VenteTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function produit(array $attributes = []): Produit
+    private function boutique(): Boutique
+    {
+        return Boutique::create(['nom' => 'Boutique test', 'active' => true]);
+    }
+
+    private function caissier(Boutique $boutique): User
+    {
+        return User::factory()->create(['role' => 'caissier', 'active' => true, 'boutique_id' => $boutique->id]);
+    }
+
+    private function produit(Boutique $boutique, int $stockActuel = 10): Produit
     {
         $categorie = Categorie::create([
             'nom' => 'Catégorie test',
             'active' => true,
         ]);
 
-        return Produit::create(array_merge([
+        $produit = Produit::create([
             'reference' => Produit::generateReference(),
             'nom' => 'Produit test',
             'prix_achat' => 500,
             'prix_vente' => 1000,
-            'stock_actuel' => 10,
+            'stock_actuel' => $stockActuel,
             'stock_min' => 2,
             'stock_max' => 100,
             'categorie_id' => $categorie->id,
             'active' => true,
-        ], $attributes));
+        ]);
+
+        BoutiqueProduit::create([
+            'boutique_id' => $boutique->id,
+            'produit_id' => $produit->id,
+            'stock_actuel' => $stockActuel,
+            'stock_min' => 2,
+            'stock_max' => 100,
+        ]);
+
+        return $produit;
     }
 
     public function test_une_vente_decremente_le_stock_et_calcule_la_monnaie(): void
     {
-        $user = User::factory()->create(['role' => 'caissier', 'active' => true]);
-        $produit = $this->produit();
+        $boutique = $this->boutique();
+        $user = $this->caissier($boutique);
+        $produit = $this->produit($boutique);
 
         $response = $this->actingAs($user)->post('/ventes', [
             'client_nom' => 'Client Test',
@@ -49,19 +72,21 @@ class VenteTest extends TestCase
 
         $response->assertRedirect(route('ventes.index'));
 
-        $produit->refresh();
-        $this->assertSame(8, $produit->stock_actuel);
+        $stock = BoutiqueProduit::withoutGlobalScopes()->where('boutique_id', $boutique->id)->where('produit_id', $produit->id)->first();
+        $this->assertSame(8, $stock->stock_actuel);
 
         $vente = Vente::first();
         $this->assertNotNull($vente);
+        $this->assertSame($boutique->id, $vente->boutique_id);
         $this->assertEquals(2000, $vente->total);
         $this->assertEquals(1000, $vente->monnaie);
     }
 
     public function test_une_vente_est_refusee_si_le_stock_est_insuffisant(): void
     {
-        $user = User::factory()->create(['role' => 'caissier', 'active' => true]);
-        $produit = $this->produit(['stock_actuel' => 1]);
+        $boutique = $this->boutique();
+        $user = $this->caissier($boutique);
+        $produit = $this->produit($boutique, 1);
 
         $this->actingAs($user)->post('/ventes', [
             'client_nom' => 'Client Test',
@@ -72,15 +97,16 @@ class VenteTest extends TestCase
             'prix_unitaires' => [1000],
         ]);
 
-        $produit->refresh();
-        $this->assertSame(1, $produit->stock_actuel);
+        $stock = BoutiqueProduit::withoutGlobalScopes()->where('boutique_id', $boutique->id)->where('produit_id', $produit->id)->first();
+        $this->assertSame(1, $stock->stock_actuel);
         $this->assertSame(0, Vente::count());
     }
 
     public function test_une_vente_accepte_le_mobile_money_comme_mode_de_paiement(): void
     {
-        $user = User::factory()->create(['role' => 'caissier', 'active' => true]);
-        $produit = $this->produit();
+        $boutique = $this->boutique();
+        $user = $this->caissier($boutique);
+        $produit = $this->produit($boutique);
 
         $this->actingAs($user)->post('/ventes', [
             'client_nom' => 'Client Test',
@@ -96,8 +122,9 @@ class VenteTest extends TestCase
 
     public function test_une_vente_refuse_un_mode_de_paiement_invalide(): void
     {
-        $user = User::factory()->create(['role' => 'caissier', 'active' => true]);
-        $produit = $this->produit();
+        $boutique = $this->boutique();
+        $user = $this->caissier($boutique);
+        $produit = $this->produit($boutique);
 
         $this->actingAs($user)->post('/ventes', [
             'client_nom' => 'Client Test',
@@ -113,8 +140,9 @@ class VenteTest extends TestCase
 
     public function test_le_ticket_de_caisse_saffiche_avec_les_bonnes_informations(): void
     {
-        $user = User::factory()->create(['role' => 'caissier', 'active' => true]);
-        $produit = $this->produit();
+        $boutique = $this->boutique();
+        $user = $this->caissier($boutique);
+        $produit = $this->produit($boutique);
 
         $this->actingAs($user)->post('/ventes', [
             'client_nom' => 'Client Test',
@@ -132,5 +160,45 @@ class VenteTest extends TestCase
             ->assertSee($vente->reference)
             ->assertSee('Produit test')
             ->assertSee('2 000');
+    }
+
+    public function test_le_stock_dune_autre_boutique_nest_pas_affecte(): void
+    {
+        $boutiqueA = Boutique::create(['nom' => 'Boutique A', 'active' => true]);
+        $boutiqueB = Boutique::create(['nom' => 'Boutique B', 'active' => true]);
+
+        $categorie = Categorie::create(['nom' => 'Catégorie test', 'active' => true]);
+        $produit = Produit::create([
+            'reference' => Produit::generateReference(),
+            'nom' => 'Produit partagé',
+            'prix_achat' => 500,
+            'prix_vente' => 1000,
+            'stock_actuel' => 10,
+            'stock_min' => 2,
+            'stock_max' => 100,
+            'categorie_id' => $categorie->id,
+            'active' => true,
+        ]);
+
+        BoutiqueProduit::create(['boutique_id' => $boutiqueA->id, 'produit_id' => $produit->id, 'stock_actuel' => 10, 'stock_min' => 2, 'stock_max' => 100]);
+        BoutiqueProduit::create(['boutique_id' => $boutiqueB->id, 'produit_id' => $produit->id, 'stock_actuel' => 10, 'stock_min' => 2, 'stock_max' => 100]);
+
+        $caissierA = $this->caissier($boutiqueA);
+
+        $this->actingAs($caissierA)->post('/ventes', [
+            'client_nom' => 'Client A',
+            'mode_paiement' => 'espece',
+            'montant_recu' => 3000,
+            'produit_ids' => [$produit->id],
+            'quantites' => [3],
+            'prix_unitaires' => [1000],
+        ])->assertRedirect(route('ventes.index'));
+
+        $stockA = BoutiqueProduit::withoutGlobalScopes()->where('boutique_id', $boutiqueA->id)->where('produit_id', $produit->id)->first();
+        $stockB = BoutiqueProduit::withoutGlobalScopes()->where('boutique_id', $boutiqueB->id)->where('produit_id', $produit->id)->first();
+
+        $this->assertSame(7, $stockA->stock_actuel);
+        $this->assertSame(10, $stockB->stock_actuel);
+        $this->assertSame(1, Vente::withoutGlobalScopes()->count());
     }
 }

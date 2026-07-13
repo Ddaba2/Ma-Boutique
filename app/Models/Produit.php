@@ -30,10 +30,24 @@ class Produit extends Model
     {
         return $this->belongsTo(Categorie::class);
     }
-    
+
     public function detailVentes()
     {
         return $this->hasMany(DetailVente::class);
+    }
+
+    public function boutiqueProduits()
+    {
+        return $this->hasMany(BoutiqueProduit::class);
+    }
+
+    /**
+     * Ligne de stock de ce produit dans une boutique précise (catalogue
+     * partagé, stock séparé par boutique — voir App\Models\BoutiqueProduit).
+     */
+    public function stockDans(int $boutiqueId): ?BoutiqueProduit
+    {
+        return $this->boutiqueProduits()->dansBoutique($boutiqueId)->first();
     }
 
     public function estEnStockFaible()

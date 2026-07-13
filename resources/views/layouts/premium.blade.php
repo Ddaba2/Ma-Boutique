@@ -238,6 +238,27 @@
                         <span class="badge role-badge-{{ $role }} mt-1">
                             {{ match($role) { 'gerant' => 'Gérant', 'gestionnaire' => 'Gestionnaire', default => 'Caissier' } }}
                         </span>
+
+                        @php $boutiqueActuelle = \App\Support\BoutiqueContext::boutique(); @endphp
+                        <div class="mt-2">
+                            @if($role === 'gerant')
+                                @php $boutiquesDisponibles = \App\Models\Boutique::where('active', true)->orderBy('nom')->get(); @endphp
+                                @if($boutiquesDisponibles->count() > 1)
+                                    <form method="POST" action="{{ route('boutiques.switch') }}">
+                                        @csrf
+                                        <select name="boutique_id" class="form-select form-select-sm" onchange="this.form.submit()" style="font-size:0.75rem;">
+                                            @foreach($boutiquesDisponibles as $b)
+                                                <option value="{{ $b->id }}" {{ $boutiqueActuelle?->id === $b->id ? 'selected' : '' }}>{{ $b->nom }}</option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                @elseif($boutiqueActuelle)
+                                    <span class="small text-muted"><i class="fas fa-store me-1"></i>{{ $boutiqueActuelle->nom }}</span>
+                                @endif
+                            @elseif($boutiqueActuelle)
+                                <span class="small text-muted"><i class="fas fa-store me-1"></i>{{ $boutiqueActuelle->nom }}</span>
+                            @endif
+                        </div>
                     </div>
 
                     <ul class="nav flex-column">
@@ -273,6 +294,11 @@
                         @if($role === 'gerant')
                         {{-- ADMINISTRATION --}}
                         <div class="sidebar-section-title mt-2">Administration</div>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('boutiques.*') ? 'active' : '' }}" href="{{ route('boutiques.index') }}">
+                                <i class="fas fa-store me-2"></i><span>Boutiques</span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('utilisateurs.*') ? 'active' : '' }}" href="{{ route('utilisateurs.index') }}">
                                 <i class="fas fa-user-cog me-2"></i><span>Utilisateurs</span>

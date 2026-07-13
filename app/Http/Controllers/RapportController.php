@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Vente;
 use App\Models\DetailVente;
-use App\Models\Produit;
+use App\Models\BoutiqueProduit;
 use App\Models\Categorie;
+use App\Support\BoutiqueContext;
 use Carbon\Carbon;
 use PDF;
 
@@ -74,14 +75,17 @@ class RapportController extends Controller
 
     public function stocks(Request $request)
     {
-        $produits = Produit::query()
+        $stocks = BoutiqueProduit::dansBoutique(BoutiqueContext::id())
+            ->with('produit.categorie')
             ->parStatutStock($request->statut_stock)
             ->get();
 
+        $produits = BoutiqueProduit::fusionnerAvecCatalogue($stocks);
+
         $totalProduits = $produits->count();
-        $produitsEnRupture = $produits->filter(fn($p) => $p->statutStock() === 'rupture')->count();
-        $produitsStockFaible = $produits->filter(fn($p) => $p->statutStock() === 'faible')->count();
-        $produitsStockNormal = $produits->filter(fn($p) => $p->statutStock() === 'normal')->count();
+        $produitsEnRupture = $stocks->filter(fn($s) => $s->statutStock() === 'rupture')->count();
+        $produitsStockFaible = $stocks->filter(fn($s) => $s->statutStock() === 'faible')->count();
+        $produitsStockNormal = $stocks->filter(fn($s) => $s->statutStock() === 'normal')->count();
 
         // Valeur du stock
         $valeurStock = $produits->sum(function($produit) {
@@ -227,11 +231,14 @@ class RapportController extends Controller
     
     public function exportPdfStocks(Request $request)
     {
-        $produits = Produit::query()
+        $stocks = BoutiqueProduit::dansBoutique(BoutiqueContext::id())
+            ->with('produit')
             ->when($request->search, function($query, $search) {
-                return $query->where('nom', 'like', '%' . $search . '%');
+                return $query->whereHas('produit', fn($q) => $q->where('nom', 'like', '%' . $search . '%'));
             })
             ->get();
+
+        $produits = BoutiqueProduit::fusionnerAvecCatalogue($stocks);
 
         $totalProduits = $produits->count();
         $produitsEnRupture = $produits->where('stock_actuel', 0)->count();
@@ -258,8 +265,9 @@ class RapportController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Récupérer les données des stocks
-        $produits = Produit::query()->get();
+        // Récupérer les données des stocks (de la boutique courante)
+        $stocks = BoutiqueProduit::dansBoutique(BoutiqueContext::id())->with('produit')->get();
+        $produits = BoutiqueProduit::fusionnerAvecCatalogue($stocks);
 
         $data = [
             'date_debut' => $dateDebut,

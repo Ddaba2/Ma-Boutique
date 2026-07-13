@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBoutique;
 use Illuminate\Database\Eloquent\Model;
 
 class MouvementStock extends Model
 {
+    use BelongsToBoutique;
+
     protected $table = 'mouvements_stock';
 
     protected $fillable = [
+        'boutique_id',
         'produit_id',
         'type',
         'quantite',

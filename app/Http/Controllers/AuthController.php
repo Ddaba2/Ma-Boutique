@@ -32,17 +32,30 @@ class AuthController extends Controller
 
         if (Auth::attempt(['email' => $credentials['username'], 'password' => $credentials['password']])) {
             $request->session()->regenerate();
+            $this->initialiserBoutique();
             return redirect()->intended(route('dashboard'))->with('success', 'Connexion réussie !');
         }
 
         if (Auth::attempt(['name' => $credentials['username'], 'password' => $credentials['password']])) {
             $request->session()->regenerate();
+            $this->initialiserBoutique();
             return redirect()->intended(route('dashboard'))->with('success', 'Connexion réussie !');
         }
 
         return back()->withErrors([
             'username' => 'Les identifiants fournis ne correspondent pas.',
         ])->onlyInput('username');
+    }
+
+    private function initialiserBoutique(): void
+    {
+        $user = Auth::user();
+
+        if ($user->boutique_id) {
+            \App\Support\BoutiqueContext::definir($user->boutique_id);
+        } else {
+            session()->forget('boutique_id');
+        }
     }
 
     public function logout(Request $request)

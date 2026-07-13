@@ -16,7 +16,7 @@
                 <div class="table-responsive">
                     <table class="table table-modern mb-0">
                         <thead>
-                            <tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Créé le</th><th>Actions</th></tr>
+                            <tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Boutique</th><th>Statut</th><th>Créé le</th><th>Actions</th></tr>
                         </thead>
                         <tbody>
                             @foreach($utilisateurs as $u)
@@ -40,6 +40,7 @@
                                         {{ match($u->role) { 'gerant' => 'Gérant', 'gestionnaire' => 'Gestionnaire', default => 'Caissier' } }}
                                     </span>
                                 </td>
+                                <td class="text-muted">{{ $u->boutique->nom ?? '— (toutes)' }}</td>
                                 <td>
                                     <span class="badge bg-{{ $u->active ? 'success' : 'secondary' }}">
                                         {{ $u->active ? 'Actif' : 'Inactif' }}
