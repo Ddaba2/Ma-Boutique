@@ -1,0 +1,43 @@
+{
+    "name": "GesBoutique - Gestion de Boutique",
+    "short_name": "GesBoutique",
+    "description": "Produits, stock, ventes, caisse et rapports pour la gestion d'une boutique.",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#0f172a",
+    "theme_color": "#2563eb",
+    "lang": "fr",
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Nouvelle vente",
+            "url": "/ventes/create",
+            "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+        },
+        {
+            "name": "Produits",
+            "url": "/produits",
+            "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+        },
+        {
+            "name": "Stock",
+            "url": "/stocks",
+            "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+        }
+    ]
+}
