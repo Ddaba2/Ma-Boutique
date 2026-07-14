@@ -274,6 +274,13 @@
                                 <i class="fas fa-shopping-cart me-2"></i><span>Ventes</span>
                             </a>
                         </li>
+                        @if(in_array($role, ['gerant', 'gestionnaire']))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('ventes.conflits*') ? 'active' : '' }}" href="{{ route('ventes.conflits') }}">
+                                <i class="fas fa-triangle-exclamation me-2"></i><span>Ventes en conflit</span>
+                            </a>
+                        </li>
+                        @endif
 
                         {{-- INVENTAIRE --}}
                         <div class="sidebar-section-title mt-2">Inventaire</div>
@@ -344,6 +351,12 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-3">
+                            {{-- Ventes hors-ligne en attente de synchronisation --}}
+                            <button type="button" class="btn btn-light btn-sm rounded-circle p-2 position-relative notif-bell" title="Ventes en attente de synchronisation" onclick="window.OfflineVentesUI && window.OfflineVentesUI.synchroniser()">
+                                <i class="fas fa-cloud-arrow-up"></i>
+                                <span class="notif-badge d-none" id="offline-ventes-badge">0</span>
+                            </button>
+
                             {{-- Notification cloche --}}
                             <div class="dropdown notif-bell" id="notifBell">
                                 <button class="btn btn-light btn-sm rounded-circle p-2" data-bs-toggle="dropdown" aria-expanded="false" onclick="chargerAlertes()">
@@ -478,6 +491,7 @@
             });
         }
     </script>
+    <script src="{{ asset('js/offline-ventes.js') }}"></script>
 
     @yield('scripts')
 </body>

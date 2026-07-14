@@ -11,6 +11,7 @@ class Vente extends Model
 
     protected $fillable = [
         'reference',
+        'uuid_client',
         'boutique_id',
         'client_id',
         'total',
@@ -21,13 +22,16 @@ class Vente extends Model
         'client_email',
         'notes',
         'statut',
+        'conflit_stock',
+        'notes_conflit',
         'mode_paiement'
     ];
 
     protected $casts = [
         'total' => 'decimal:2',
         'montant_recu' => 'decimal:2',
-        'monnaie' => 'decimal:2'
+        'monnaie' => 'decimal:2',
+        'conflit_stock' => 'boolean',
     ];
 
     public function client()

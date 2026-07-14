@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Vente;
-use App\Models\DetailVente;
-use App\Models\Produit;
 use App\Models\BoutiqueProduit;
 use App\Support\BoutiqueContext;
+use App\Services\VenteService;
+use App\Exceptions\StockInsuffisantException;
 use Illuminate\Support\Facades\DB;
 
 class VenteController extends Controller
@@ -23,7 +23,7 @@ class VenteController extends Controller
         return view('ventes.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, VenteService $venteService)
     {
         $request->validate([
             'client_nom' => 'required|string|max:255',
@@ -38,97 +38,30 @@ class VenteController extends Controller
             'prix_unitaires.*' => 'required|numeric|min:0',
         ]);
 
-        $boutiqueId = BoutiqueContext::id();
+        $lignes = [];
+        foreach ($request->produit_ids as $index => $produitId) {
+            $lignes[] = [
+                'produit_id' => $produitId,
+                'quantite' => $request->quantites[$index],
+                'prix_unitaire' => $request->prix_unitaires[$index],
+            ];
+        }
 
         try {
-            DB::beginTransaction();
-
-            $total = 0;
-            $items = [];
-
-            // Valider les stocks (de la boutique courante) et calculer le total
-            foreach ($request->produit_ids as $index => $produitId) {
-                $produit = Produit::findOrFail($produitId);
-                $qty = $request->quantites[$index];
-                $prixUnitaire = $request->prix_unitaires[$index];
-
-                $stockBoutique = BoutiqueProduit::dansBoutique($boutiqueId)
-                    ->where('produit_id', $produitId)
-                    ->lockForUpdate()
-                    ->first();
-                $stockDisponible = $stockBoutique->stock_actuel ?? 0;
-
-                if ($stockDisponible < $qty) {
-                    DB::rollback();
-                    return back()->with('error', 'Stock insuffisant pour le produit : ' . $produit->nom . '. Stock disponible: ' . $stockDisponible)->withInput();
-                }
-
-                $ligneTotal = $qty * $prixUnitaire;
-                $total += $ligneTotal;
-
-                $items[] = [
-                    'produit' => $produit,
-                    'stock_boutique' => $stockBoutique,
-                    'quantite' => $qty,
-                    'prix_unitaire' => $prixUnitaire,
-                    'total_ligne' => $ligneTotal
-                ];
-            }
-
-            $montantRecu = $request->montant_recu;
-            $monnaie = $montantRecu - $total;
-
-            // Créer la vente
-            $reference = Vente::generateReference();
-
-            $vente = Vente::create([
-                'reference' => $reference,
-                'total' => $total,
-                'montant_recu' => $montantRecu,
-                'monnaie' => $monnaie,
+            $vente = $venteService->creerVente([
                 'client_nom' => $request->client_nom,
                 'client_telephone' => $request->client_telephone,
                 'mode_paiement' => $request->mode_paiement,
-                'statut' => 'terminee'
-            ]);
-
-            // Créer les détails de la vente et enregistrer les mouvements de stock
-            foreach ($items as $item) {
-                $produit = $item['produit'];
-                $qty = $item['quantite'];
-
-                DetailVente::create([
-                    'vente_id' => $vente->id,
-                    'produit_id' => $produit->id,
-                    'quantite' => $qty,
-                    'prix_unitaire' => $item['prix_unitaire'],
-                    'total_ligne' => $item['total_ligne']
-                ]);
-
-                // Mettre à jour le stock de la boutique courante
-                $item['stock_boutique']->decrement('stock_actuel', $qty);
-
-                // Créer le mouvement de stock pour la traçabilité des sorties (ventes)
-                \App\Models\MouvementStock::create([
-                    'produit_id' => $produit->id,
-                    'type' => 'sortie',
-                    'quantite' => $qty,
-                    'prix_unitaire' => $item['prix_unitaire'],
-                    'total' => $item['total_ligne'],
-                    'reference' => \App\Models\MouvementStock::generateReference(),
-                    'motif' => 'Vente facture ' . $reference,
-                    'date_mouvement' => now(),
-                    'notes' => 'Client: ' . $request->client_nom
-                ]);
-            }
-
-            DB::commit();
+                'montant_recu' => $request->montant_recu,
+                'lignes' => $lignes,
+            ], BoutiqueContext::id());
 
             return redirect()->route('ventes.index')
-                ->with('success', 'Vente enregistrée avec succès! Référence: ' . $reference . ', Total: ' . number_format($total, 0, ',', ' ') . ' FCFA');
+                ->with('success', 'Vente enregistrée avec succès! Référence: ' . $vente->reference . ', Total: ' . number_format($vente->total, 0, ',', ' ') . ' FCFA');
 
+        } catch (StockInsuffisantException $e) {
+            return back()->with('error', $e->getMessage())->withInput();
         } catch (\Exception $e) {
-            DB::rollback();
             report($e);
             return back()->with('error', 'Une erreur est survenue lors de l\'enregistrement de la vente. Veuillez réessayer.')
                 ->withInput();

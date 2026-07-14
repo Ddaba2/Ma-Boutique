@@ -652,13 +652,75 @@ document.addEventListener('DOMContentLoaded', function() {
         updateTotals(total);
     });
 
-    // Validation à la soumission du formulaire
-    document.getElementById('venteForm').addEventListener('submit', function(e) {
+    // Soumission du formulaire : tentative en ligne normale, bascule vers la
+    // file d'attente hors-ligne uniquement en cas d'échec réseau réel (pas de
+    // changement de comportement pour une soumission qui aboutit normalement).
+    const venteForm = document.getElementById('venteForm');
+    venteForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
         if (cart.length === 0) {
-            e.preventDefault();
             alert('Votre panier de vente est vide. Veuillez ajouter au moins un produit.');
+            return;
+        }
+
+        const formData = new FormData(venteForm);
+
+        try {
+            const response = await fetch(venteForm.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+            });
+            window.location.href = response.url;
+        } catch (networkError) {
+            if (!window.OfflineVentes) {
+                alert('Connexion indisponible et la file d\'attente hors-ligne n\'a pas pu être chargée. Réessayez.');
+                return;
+            }
+
+            const uuid = await window.OfflineVentes.enqueue({
+                client_nom: document.getElementById('client_nom').value,
+                client_telephone: document.getElementById('client_telephone').value,
+                mode_paiement: document.getElementById('mode_paiement').value,
+                montant_recu: parseFloat(montantRecuInput.value) || 0,
+                lignes: cart.map(function (item) {
+                    return {
+                        produit_id: item.product.id,
+                        quantite: item.quantity,
+                        prix_unitaire: item.price,
+                    };
+                }),
+                total: grandTotalCourant(),
+            });
+
+            afficherConfirmationHorsLigne(uuid);
+
+            cart = [];
+            updateCartUI();
+            venteForm.reset();
+
+            if (window.OfflineVentesUI) {
+                window.OfflineVentesUI.rafraichirBadge();
+            }
         }
     });
+
+    function grandTotalCourant() {
+        return cart.reduce((somme, item) => somme + item.quantity * item.price, 0);
+    }
+
+    function afficherConfirmationHorsLigne(uuid) {
+        const conteneur = document.querySelector('.card-body.p-4');
+        const alerte = document.createElement('div');
+        alerte.className = 'alert alert-warning alert-dismissible fade show';
+        alerte.innerHTML =
+            '<i class="fas fa-cloud-arrow-up me-2"></i>' +
+            '<strong>Pas de connexion.</strong> La vente a été enregistrée localement (réf. provisoire ' + uuid.slice(0, 8).toUpperCase() + ') ' +
+            'et sera synchronisée automatiquement dès le retour du réseau.' +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        conteneur.prepend(alerte);
+    }
 });
 </script>
 @endsection

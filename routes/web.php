@@ -14,6 +14,8 @@ use App\Http\Controllers\ClotureCaisseController;
 use App\Http\Controllers\UtilisateurController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BoutiqueController;
+use App\Http\Controllers\VenteSyncController;
+use App\Http\Controllers\VenteConflitController;
 use App\Http\Controllers\Api\ProduitController as ApiProduitController;
 
 // Authentification
@@ -75,6 +77,16 @@ Route::middleware(['auth', 'boutique'])->group(function () {
     Route::resource('ventes', VenteController::class);
     Route::get('/ventes/{vente}/facture', [VenteController::class, 'facture'])->name('ventes.facture');
     Route::get('/ventes/{vente}/ticket', [VenteController::class, 'ticket'])->name('ventes.ticket');
+
+    // Synchronisation des ventes créées hors-ligne (file d'attente IndexedDB)
+    Route::post('/api/ventes/sync', [VenteSyncController::class, 'sync'])->name('api.ventes.sync');
+    Route::get('/api/csrf-refresh', [VenteSyncController::class, 'rafraichirCsrf'])->name('api.csrf.refresh');
+
+    // Ventes synchronisées avec un conflit de stock à résoudre manuellement
+    Route::middleware(['role:gerant,gestionnaire'])->group(function () {
+        Route::get('/ventes-conflits', [VenteConflitController::class, 'index'])->name('ventes.conflits');
+        Route::post('/ventes/{vente}/resoudre-conflit', [VenteConflitController::class, 'resoudre'])->name('ventes.conflits.resoudre');
+    });
 
     // Stocks
     Route::get('/stocks', [\App\Http\Controllers\StockController::class, 'index'])->name('stocks.index');

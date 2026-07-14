@@ -1,8 +1,8 @@
-const CACHE_VERSION = 'gesboutique-v1';
+const CACHE_VERSION = 'gesboutique-v2';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE_URLS = [
     OFFLINE_URL,
-    '/manifest.webmanifest',
+    '/manifest.json',
     '/icons/icon.svg',
 ];
 
@@ -53,6 +53,21 @@ self.addEventListener('fetch', (event) => {
                     })
                     .catch(() => cached);
                 return cached || network;
+            })
+        );
+    }
+});
+
+// Best-effort : au retour de connexion, on relaie aux onglets ouverts pour
+// qu'ils rejouent leur file de ventes en attente (logique IndexedDB tenue
+// côté page, pas dupliquée ici). Ne fonctionne que si un onglet est ouvert ;
+// le vrai filet de sécurité reste l'écouteur "online" côté page (offline-ventes.js),
+// qui couvre aussi les navigateurs sans Background Sync (Safari/iOS).
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sync-ventes') {
+        event.waitUntil(
+            self.clients.matchAll().then((clients) => {
+                clients.forEach((client) => client.postMessage({ type: 'SYNC_VENTES' }));
             })
         );
     }
