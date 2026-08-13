@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hors ligne - GesBoutique</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+            padding: 24px;
+        }
+        .box { max-width: 360px; }
+        h1 { font-size: 1.25rem; margin-bottom: 8px; }
+        p { color: #94a3b8; margin-bottom: 20px; }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Pas de connexion</h1>
+        <p>GesBoutique nécessite une connexion au serveur local pour fonctionner. Vérifiez votre réseau et réessayez.</p>
+        <button onclick="window.location.reload()">Réessayer</button>
+    </div>
+</body>
+</html>

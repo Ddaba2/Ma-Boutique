@@ -1,0 +1,8 @@
+/*
+ * Bootstrap + Font Awesome, embarqués en local via npm/Vite au lieu d'un CDN.
+ * L'appli est conçue pour tourner hors-ligne (voir public/sw.js) : la faire
+ * dépendre d'un CDN externe pour sa mise en forme allait à l'encontre de cet
+ * objectif — sans accès à ce CDN, toutes les pages s'affichaient en HTML brut.
+ */
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import '@fortawesome/fontawesome-free/css/all.min.css';

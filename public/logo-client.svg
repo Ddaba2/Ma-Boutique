@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Logo">
+  <rect width="128" height="128" rx="24" fill="#1e3a5f"/>
+  <path d="M34 78 V50 h18 c14 0 22 7 22 18 s-8 18-22 18 H34zm16-12 h4 c5 0 8-2.5 8-6s-3-6-8-6h-4v12z" fill="#fff"/>
+  <path d="M78 50 h14 c16 0 26 9 26 24 s-10 24-26 24 H78 V50zm14 36 c8 0 13-4.5 13-12s-5-12-13-12h-2v24h2z" fill="#93c5fd"/>
+  <circle cx="98" cy="36" r="8" fill="#3b82f6"/>
+</svg>
