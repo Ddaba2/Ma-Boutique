@@ -5,9 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Vente;
 use App\Models\BoutiqueProduit;
+use App\Models\MouvementStock;
 use App\Support\BoutiqueContext;
+use App\Support\PdfBranding;
 use App\Services\VenteService;
 use App\Exceptions\StockInsuffisantException;
+use App\Exceptions\MontantInsuffisantException;
+use App\Models\Produit;
+use App\Support\ValidePrixCatalogue;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class VenteController extends Controller
@@ -47,6 +53,15 @@ class VenteController extends Controller
             ];
         }
 
+        // Le prix unitaire vient du formulaire (nécessaire pour l'afficher
+        // dans le panier avant envoi), mais ne doit jamais être source de
+        // vérité : un caissier pourrait le modifier depuis les outils
+        // développeur du navigateur. On vérifie qu'il correspond au prix de
+        // vente réel du catalogue avant d'accepter la vente.
+        if (!ValidePrixCatalogue::prixConformes($lignes)) {
+            return back()->with('error', 'Le prix d\'un produit a changé, veuillez réessayer la vente.')->withInput();
+        }
+
         try {
             $vente = $venteService->creerVente([
                 'client_nom' => $request->client_nom,
@@ -59,18 +74,13 @@ class VenteController extends Controller
             return redirect()->route('ventes.index')
                 ->with('success', 'Vente enregistrée avec succès! Référence: ' . $vente->reference . ', Total: ' . number_format($vente->total, 0, ',', ' ') . ' FCFA');
 
-        } catch (StockInsuffisantException $e) {
+        } catch (StockInsuffisantException|MontantInsuffisantException $e) {
             return back()->with('error', $e->getMessage())->withInput();
         } catch (\Exception $e) {
             report($e);
             return back()->with('error', 'Une erreur est survenue lors de l\'enregistrement de la vente. Veuillez réessayer.')
                 ->withInput();
         }
-    }
-
-    public function storePos(Request $request)
-    {
-        return $this->store($request);
     }
 
     public function show(Vente $vente)
@@ -112,32 +122,52 @@ class VenteController extends Controller
             ->with('success', 'Vente mise à jour avec succès.');
     }
 
+    /**
+     * Annule une vente déjà encaissée : ni la vente ni ses lignes ne sont
+     * supprimées (l'historique/les rapports doivent rester exacts), le stock
+     * est restitué avec un mouvement de stock traçable, et le statut passe à
+     * 'annulee'. Une vente déjà annulée ne peut pas l'être une seconde fois
+     * (le stock serait restitué deux fois).
+     */
     public function destroy(Vente $vente)
     {
+        if ($vente->statut === 'annulee') {
+            return redirect()->route('ventes.index')
+                ->with('error', 'Cette vente est déjà annulée.');
+        }
+
         try {
-            DB::beginTransaction();
+            DB::transaction(function () use ($vente) {
+                foreach ($vente->detailVentes as $detail) {
+                    BoutiqueProduit::dansBoutique($vente->boutique_id)
+                        ->where('produit_id', $detail->produit_id)
+                        ->first()
+                        ?->increment('stock_actuel', $detail->quantite);
 
-            // Remettre les produits en stock, dans la boutique où la vente a eu lieu
-            foreach ($vente->detailVentes as $detail) {
-                BoutiqueProduit::dansBoutique($vente->boutique_id)
-                    ->where('produit_id', $detail->produit_id)
-                    ->first()
-                    ?->increment('stock_actuel', $detail->quantite);
-            }
+                    MouvementStock::create([
+                        'boutique_id' => $vente->boutique_id,
+                        'produit_id' => $detail->produit_id,
+                        'type' => 'retour_client',
+                        'quantite' => $detail->quantite,
+                        'prix_unitaire' => $detail->prix_unitaire,
+                        'total' => $detail->total_ligne,
+                        'reference' => MouvementStock::generateReference(),
+                        'motif' => 'Annulation vente ' . $vente->reference,
+                        'date_mouvement' => now(),
+                        'notes' => 'Annulée par ' . (Auth::user()->name ?? 'système'),
+                    ]);
+                }
 
-            // Supprimer la vente
-            $vente->delete();
-
-            DB::commit();
+                $vente->update(['statut' => 'annulee']);
+            });
 
             return redirect()->route('ventes.index')
-                ->with('success', 'Vente supprimée avec succès.');
+                ->with('success', 'Vente annulée avec succès, le stock a été restitué.');
 
         } catch (\Exception $e) {
-            DB::rollback();
             report($e);
             return redirect()->route('ventes.index')
-                ->with('error', 'Erreur lors de la suppression de la vente.');
+                ->with('error', "Erreur lors de l'annulation de la vente.");
         }
     }
 
@@ -152,14 +182,12 @@ class VenteController extends Controller
 
     public function facture(Vente $vente)
     {
-        // Charger les détails de la vente avec les produits
-        $vente->load('detailVentes.produit');
-        
-        // Récupérer les informations de l'entreprise
-        $entreprise = \App\Models\Entreprise::first();
-        
-        // Générer le PDF
-        $pdf = \PDF::loadView('ventes.facture', compact('vente', 'entreprise'));
+        $vente->load(['detailVentes.produit', 'client']);
+
+        $pdf = \PDF::loadView('ventes.facture', array_merge(
+            compact('vente'),
+            PdfBranding::forView()
+        ));
         
         // Nom du fichier
         $filename = 'facture_' . $vente->reference . '_' . $vente->created_at->format('Y-m-d') . '.pdf';

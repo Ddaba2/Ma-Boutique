@@ -10,61 +10,29 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * L'application reste techniquement multi-boutique (boutique_id, scope
+ * automatique, stock séparé) mais n'expose plus d'écran de gestion — il n'y a
+ * jamais qu'une seule boutique active en pratique, sélectionnée
+ * automatiquement (voir EnsureBoutiqueSelected). Ces tests couvrent ce qui
+ * reste réellement en jeu : l'isolation du stock et l'amorçage automatique
+ * d'une boutique nouvellement créée (par tinker/seeder).
+ */
 class MultiBoutiqueTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_un_gerant_sans_boutique_est_redirige_vers_la_creation_si_aucune_nexiste(): void
+    public function test_un_gerant_sans_boutique_assignee_bascule_automatiquement_sur_lunique_boutique_active(): void
     {
-        // La migration de backfill crée toujours une "Boutique principale" par
-        // défaut ; on simule ici le cas limite où plus aucune boutique n'existe.
-        Boutique::query()->delete();
-
+        $boutique = Boutique::create(['nom' => 'Boutique unique', 'active' => true]);
         $gerant = User::factory()->create(['role' => 'gerant', 'active' => true, 'boutique_id' => null]);
 
-        $this->actingAs($gerant)->get('/dashboard')->assertRedirect(route('boutiques.create'));
-    }
-
-    public function test_un_gerant_sans_boutique_est_redirige_vers_la_selection_si_des_boutiques_existent(): void
-    {
-        Boutique::create(['nom' => 'Boutique A', 'active' => true]);
-        $gerant = User::factory()->create(['role' => 'gerant', 'active' => true, 'boutique_id' => null]);
-
-        $this->actingAs($gerant)->get('/dashboard')->assertRedirect(route('boutiques.selectionner'));
-    }
-
-    public function test_un_gerant_peut_changer_de_boutique_active(): void
-    {
-        $boutiqueA = Boutique::create(['nom' => 'Boutique A', 'active' => true]);
-        $boutiqueB = Boutique::create(['nom' => 'Boutique B', 'active' => true]);
-        $gerant = User::factory()->create(['role' => 'gerant', 'active' => true, 'boutique_id' => null]);
-
-        $this->actingAs($gerant)->post('/boutique/switch', ['boutique_id' => $boutiqueA->id])
-            ->assertRedirect(route('dashboard'));
-
-        $this->assertSame($boutiqueA->id, session('boutique_id'));
-
-        $this->actingAs($gerant)->post('/boutique/switch', ['boutique_id' => $boutiqueB->id])
-            ->assertRedirect(route('dashboard'));
-
-        $this->assertSame($boutiqueB->id, session('boutique_id'));
-    }
-
-    public function test_un_caissier_ne_peut_pas_changer_de_boutique(): void
-    {
-        $boutique = Boutique::create(['nom' => 'Boutique A', 'active' => true]);
-        $autreBoutique = Boutique::create(['nom' => 'Boutique B', 'active' => true]);
-        $caissier = User::factory()->create(['role' => 'caissier', 'active' => true, 'boutique_id' => $boutique->id]);
-
-        $this->actingAs($caissier)->post('/boutique/switch', ['boutique_id' => $autreBoutique->id])
-            ->assertForbidden();
+        $this->actingAs($gerant)->get('/dashboard')->assertOk();
+        $this->assertSame($boutique->id, session('boutique_id'));
     }
 
     public function test_creer_une_boutique_initialise_le_stock_a_zero_pour_les_produits_existants(): void
     {
-        $boutiqueExistante = Boutique::create(['nom' => 'Boutique existante', 'active' => true]);
-        $gerant = User::factory()->create(['role' => 'gerant', 'active' => true, 'boutique_id' => $boutiqueExistante->id]);
-
         $categorie = Categorie::create(['nom' => 'Catégorie test', 'active' => true]);
         $produit = Produit::create([
             'reference' => Produit::generateReference(),
@@ -78,12 +46,7 @@ class MultiBoutiqueTest extends TestCase
             'active' => true,
         ]);
 
-        $this->actingAs($gerant)->post('/boutiques', [
-            'nom' => 'Nouvelle boutique',
-            'adresse' => 'Quelque part',
-        ])->assertRedirect(route('boutiques.index'));
-
-        $nouvelleBoutique = Boutique::where('nom', 'Nouvelle boutique')->firstOrFail();
+        $nouvelleBoutique = Boutique::create(['nom' => 'Nouvelle boutique', 'active' => true]);
 
         $stock = BoutiqueProduit::withoutGlobalScopes()
             ->where('boutique_id', $nouvelleBoutique->id)
@@ -112,6 +75,9 @@ class MultiBoutiqueTest extends TestCase
             'active' => true,
         ]);
 
+        // Le produit est créé après les boutiques : l'amorçage automatique de
+        // Boutique::booted() (pour les produits déjà existants) ne s'applique
+        // pas ici, on crée donc les lignes de stock explicitement.
         BoutiqueProduit::create(['boutique_id' => $boutiqueA->id, 'produit_id' => $produit->id, 'stock_actuel' => 15, 'stock_min' => 2, 'stock_max' => 100]);
         BoutiqueProduit::create(['boutique_id' => $boutiqueB->id, 'produit_id' => $produit->id, 'stock_actuel' => 3, 'stock_min' => 2, 'stock_max' => 100]);
 

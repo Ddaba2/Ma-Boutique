@@ -21,30 +21,24 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Chercher l'utilisateur par email ou nom
-        $user = User::where('email', $credentials['username'])
-                    ->orWhere('name', $credentials['username'])
-                    ->first();
+        $user = User::where(function ($query) use ($credentials) {
+            $query->where('email', $credentials['username'])
+                ->orWhere('name', $credentials['username']);
+        })->first();
 
-        if ($user && !$user->active) {
-            return back()->withErrors(['username' => 'Votre compte est désactivé. Contactez le gérant.'])->onlyInput('username');
+        // Message identique pour compte inconnu, mot de passe incorrect ou compte
+        // désactivé (évite l'énumération de comptes).
+        if (!$user || !$user->active || !Hash::check($credentials['password'], $user->password)) {
+            return back()->withErrors([
+                'username' => 'Les identifiants fournis ne correspondent pas.',
+            ])->onlyInput('username');
         }
 
-        if (Auth::attempt(['email' => $credentials['username'], 'password' => $credentials['password']])) {
-            $request->session()->regenerate();
-            $this->initialiserBoutique();
-            return redirect()->intended(route('dashboard'))->with('success', 'Connexion réussie !');
-        }
+        Auth::login($user);
+        $request->session()->regenerate();
+        $this->initialiserBoutique();
 
-        if (Auth::attempt(['name' => $credentials['username'], 'password' => $credentials['password']])) {
-            $request->session()->regenerate();
-            $this->initialiserBoutique();
-            return redirect()->intended(route('dashboard'))->with('success', 'Connexion réussie !');
-        }
-
-        return back()->withErrors([
-            'username' => 'Les identifiants fournis ne correspondent pas.',
-        ])->onlyInput('username');
+        return redirect()->intended(route('dashboard'))->with('success', 'Connexion réussie !');
     }
 
     private function initialiserBoutique(): void
@@ -61,10 +55,10 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         Auth::logout();
-        
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        
+
         return redirect()->route('login')
             ->with('success', 'Déconnexion réussie.');
     }

@@ -1,11 +1,12 @@
-@extends('layouts.app')
+@extends('layouts.premium')
 
 @section('title', 'Ajouter un produit')
+@section('subtitle', 'Nouveau produit du catalogue')
 
 @section('content')
-<div class="row justify-content-center">
+<div class="row justify-content-center mt-4">
     <div class="col-md-8">
-        <div class="card">
+        <div class="card animate-fadeInUp">
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="fas fa-plus text-primary me-2"></i>

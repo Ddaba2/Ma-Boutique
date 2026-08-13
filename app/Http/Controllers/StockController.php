@@ -8,6 +8,7 @@ use App\Models\MouvementStock;
 use App\Models\BoutiqueProduit;
 use App\Models\Categorie;
 use App\Support\BoutiqueContext;
+use App\Support\ReglesChamps;
 use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
@@ -59,13 +60,33 @@ class StockController extends Controller
     {
         $categories = Categorie::where('active', true)->get();
         $produits = Produit::where('active', true)->get();
-        return view('stocks.create', compact('categories', 'produits'));
+
+        $stats = $this->statistiquesStock(BoutiqueContext::id());
+
+        return view('stocks.create', compact('categories', 'produits') + $stats);
+    }
+
+    /**
+     * Compteurs par état de stock pour la boutique courante, utilisés à la
+     * fois par l'écran de liste et par le résumé affiché lors d'une saisie
+     * d'entrée de stock.
+     */
+    private function statistiquesStock(?int $boutiqueId): array
+    {
+        $stocks = BoutiqueProduit::dansBoutique($boutiqueId)->get();
+
+        return [
+            'totalProduits' => $stocks->count(),
+            'produitsEnRupture' => $stocks->filter(fn($s) => $s->statutStock() === 'rupture')->count(),
+            'produitsStockFaible' => $stocks->filter(fn($s) => $s->statutStock() === 'faible')->count(),
+            'produitsStockNormal' => $stocks->filter(fn($s) => $s->statutStock() === 'normal')->count(),
+        ];
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'produit_nom' => 'required|string|max:255',
+            'produit_nom' => ['required', 'string', 'max:255', ReglesChamps::NOM_SANS_HTML],
             'quantite' => 'required|integer|min:1',
             'prix_achat' => 'nullable|numeric|min:0',
             'prix_vente' => 'nullable|numeric|min:0',
@@ -93,7 +114,7 @@ class StockController extends Controller
                 $isNew = true;
                 $produit = new Produit();
                 $produit->nom = $request->produit_nom;
-                $produit->reference = 'PROD-' . date('Y') . '-' . str_pad(Produit::lockForUpdate()->count() + 1, 4, '0', STR_PAD_LEFT);
+                $produit->reference = Produit::generateReference();
                 $produit->prix_achat = $request->prix_achat ?? 0;
                 $produit->prix_vente = $request->prix_vente ?? $request->prix_achat ?? 0;
                 $produit->stock_actuel = 0;
@@ -183,6 +204,8 @@ class StockController extends Controller
 
     public function mouvements()
     {
+        // MouvementStock utilise BelongsToBoutique : le scope global filtre déjà
+        // sur la boutique courante, pas besoin de filtrer explicitement ici.
         $mouvements = MouvementStock::with('produit')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -190,13 +213,73 @@ class StockController extends Controller
         return view('stocks.mouvements', compact('mouvements'));
     }
 
-    public function historique($produit_id)
+    public function historique(Produit $produit)
     {
-        $produit = Produit::findOrFail($produit_id);
-        $mouvements = MouvementStock::where('produit_id', $produit_id)
+        $mouvements = MouvementStock::where('produit_id', $produit->id)
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
         return view('stocks.historique', compact('produit', 'mouvements'));
+    }
+
+    public function ajusterForm(Produit $produit)
+    {
+        $stockBoutique = $produit->stockDans(BoutiqueContext::id());
+        return view('stocks.ajuster', compact('produit', 'stockBoutique'));
+    }
+
+    public function ajuster(Request $request, Produit $produit)
+    {
+        $request->validate([
+            'nouveau_stock' => 'required|integer|min:0',
+            'motif' => 'required|string|max:255',
+        ]);
+
+        $boutiqueId = BoutiqueContext::id();
+
+        DB::beginTransaction();
+        try {
+            $stockBoutique = BoutiqueProduit::dansBoutique($boutiqueId)
+                ->where('produit_id', $produit->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$stockBoutique) {
+                $stockBoutique = BoutiqueProduit::create([
+                    'boutique_id' => $boutiqueId,
+                    'produit_id' => $produit->id,
+                    'stock_actuel' => 0,
+                    'stock_min' => 5,
+                    'stock_max' => 100,
+                ]);
+            }
+
+            $ancienStock = $stockBoutique->stock_actuel;
+            $nouveauStock = (int) $request->nouveau_stock;
+            $ecart = $nouveauStock - $ancienStock;
+
+            if ($ecart !== 0) {
+                MouvementStock::create([
+                    'boutique_id' => $boutiqueId,
+                    'produit_id' => $produit->id,
+                    'type' => 'ajout_manuel',
+                    'quantite' => abs($ecart),
+                    'reference' => MouvementStock::generateReference(),
+                    'motif' => $request->motif,
+                    'date_mouvement' => now(),
+                    'notes' => "Ajustement d'inventaire : {$ancienStock} → {$nouveauStock} (" . ($ecart > 0 ? '+' : '') . "{$ecart})",
+                ]);
+
+                $stockBoutique->update(['stock_actuel' => $nouveauStock]);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            report($e);
+            return back()->with('error', "Erreur lors de l'ajustement du stock.")->withInput();
+        }
+
+        return redirect()->route('stocks.index')->with('success', "Stock de « {$produit->nom} » ajusté avec succès.");
     }
 }

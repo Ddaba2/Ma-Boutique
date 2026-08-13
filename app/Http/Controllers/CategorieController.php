@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Categorie;
+use App\Support\ReglesChamps;
 use Illuminate\Http\Request;
 
 class CategorieController extends Controller
@@ -21,7 +22,7 @@ class CategorieController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nom' => 'required|string|max:255|unique:categories,nom',
+            'nom' => ['required', 'string', 'max:255', 'unique:categories,nom', ReglesChamps::NOM_SANS_HTML],
             'description' => 'nullable|string',
             'couleur' => 'nullable|regex:/^#[0-9A-Fa-f]{6}$/',
             'active' => 'boolean',
@@ -50,7 +51,7 @@ class CategorieController extends Controller
     public function update(Request $request, Categorie $categorie)
     {
         $data = $request->validate([
-            'nom' => 'required|string|max:255|unique:categories,nom,' . $categorie->id,
+            'nom' => ['required', 'string', 'max:255', 'unique:categories,nom,' . $categorie->id, ReglesChamps::NOM_SANS_HTML],
             'description' => 'nullable|string',
             'couleur' => 'nullable|regex:/^#[0-9A-Fa-f]{6}$/',
             'active' => 'boolean',

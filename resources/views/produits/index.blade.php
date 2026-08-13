@@ -1,28 +1,30 @@
-@extends('layouts.app')
+@extends('layouts.premium')
 
-@section('title', 'Gestion des produits')
+@section('title', 'Produits')
+@section('subtitle', 'Gérez votre catalogue de produits')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4>Liste des produits</h4>
-        <p class="text-muted">Gérez votre catalogue de produits</p>
-    </div>
-    <div>
-        <form class="d-flex" method="GET" action="{{ route('produits.index') }}">
+<div class="card animate-fadeInUp mb-4 mt-4">
+    <div class="card-body d-flex gap-2">
+        <form class="d-flex flex-grow-1" method="GET" action="{{ route('produits.index') }}">
             <input class="form-control me-2" type="search" name="search" placeholder="Rechercher un produit..." value="{{ request('search') }}">
             <button class="btn btn-outline-primary" type="submit">
                 <i class="fas fa-search"></i>
             </button>
         </form>
+        @if(in_array(auth()->user()->role, ['gerant', 'gestionnaire']))
+        <a href="{{ route('produits.import') }}" class="btn btn-outline-secondary text-nowrap">
+            <i class="fas fa-file-csv me-2"></i>Importer un catalogue
+        </a>
+        @endif
     </div>
 </div>
 
-<div class="card">
+<div class="card animate-fadeInUp">
     <div class="card-body">
         @if($produits->count() > 0)
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-modern">
                     <thead>
                         <tr>
                             <th>Référence</th>
@@ -82,16 +84,20 @@
                                         <a href="{{ route('produits.show', $produit) }}" class="btn btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
+                                        @if(in_array(auth()->user()->role, ['gerant', 'gestionnaire']))
                                         <a href="{{ route('produits.edit', $produit) }}" class="btn btn-outline-warning">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        @endif
+                                        @if($produit->active && in_array(auth()->user()->role, ['gerant', 'gestionnaire']))
                                         <form action="{{ route('produits.destroy', $produit) }}" method="POST" style="display: inline;">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')">
-                                                <i class="fas fa-trash"></i>
+                                            <button type="submit" class="btn btn-outline-danger" title="Désactiver (retire du catalogue actif, conserve l'historique)" onclick="return confirm('Désactiver ce produit ? Il ne sera plus proposé à la vente, mais son historique est conservé.')">
+                                                <i class="fas fa-ban"></i>
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

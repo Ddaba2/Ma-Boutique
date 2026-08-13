@@ -5,19 +5,30 @@ namespace App\Http\Controllers;
 use App\Models\Categorie;
 use App\Models\Produit;
 use App\Models\BoutiqueProduit;
+use App\Models\MouvementStock;
 use App\Support\BoutiqueContext;
+use App\Support\ReglesChamps;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ProduitController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $boutiqueId = BoutiqueContext::id();
+        $search = trim((string) $request->query('search', ''));
 
         $produits = Produit::with(['categorie', 'boutiqueProduits' => function ($q) use ($boutiqueId) {
             $q->dansBoutique($boutiqueId);
-        }])->paginate(10);
+        }])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nom', 'like', "%{$search}%")
+                        ->orWhere('reference', 'like', "%{$search}%");
+                });
+            })
+            ->paginate(10)
+            ->withQueryString();
 
         // Le stock affiché est celui de la boutique courante, pas les colonnes
         // héritées sur produits (conservées uniquement pour compatibilité).
@@ -40,7 +51,7 @@ class ProduitController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nom' => 'required|string|max:255',
+            'nom' => ['required', 'string', 'max:255', ReglesChamps::NOM_SANS_HTML],
             'description' => 'nullable|string',
             'prix_achat' => 'required|numeric|min:0',
             'prix_vente' => 'required|numeric|min:0',
@@ -48,7 +59,7 @@ class ProduitController extends Controller
             'stock_min' => 'required|integer|min:0',
             'stock_max' => 'required|integer|min:0',
             'categorie_id' => 'required|exists:categories,id',
-            'image' => 'nullable|string'
+            'image' => ['nullable', 'string', ReglesChamps::NOM_SANS_HTML]
         ]);
 
         DB::beginTransaction();
@@ -90,29 +101,38 @@ class ProduitController extends Controller
 
     public function show(Produit $produit)
     {
-        return view('produits.show', compact('produit'));
+        $stockBoutique = $produit->stockDans(BoutiqueContext::id());
+        $derniersMouvements = MouvementStock::where('produit_id', $produit->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('produits.show', compact('produit', 'stockBoutique', 'derniersMouvements'));
     }
 
     public function edit(Produit $produit)
     {
         $categories = Categorie::where('active', true)->get();
-        return view('produits.edit', compact('produit', 'categories'));
+        $stockBoutique = $produit->stockDans(BoutiqueContext::id());
+
+        return view('produits.edit', compact('produit', 'categories', 'stockBoutique'));
     }
 
     public function update(Request $request, Produit $produit)
     {
+        // Le stock ne se modifie plus depuis la fiche produit : il n'est fiable
+        // que via le module Stock (entrée/sortie tracée), pas en écrasant une
+        // quantité à la main ici — voir StockController et BoutiqueProduit.
         $data = $request->validate([
-            'nom' => 'required|string|max:255',
+            'nom' => ['required', 'string', 'max:255', ReglesChamps::NOM_SANS_HTML],
             'description' => 'nullable|string',
             'prix_achat' => 'required|numeric|min:0',
             'prix_vente' => 'required|numeric|min:0',
-            'stock_actuel' => 'required|integer|min:0',
-            'stock_min' => 'required|integer|min:0',
-            'stock_max' => 'required|integer|min:0',
             'categorie_id' => 'required|exists:categories,id',
-            'image' => 'nullable|string',
+            'image' => ['nullable', 'string', ReglesChamps::NOM_SANS_HTML],
             'active' => 'boolean'
         ]);
+        $data['active'] = $request->boolean('active');
 
         $produit->update($data);
 
@@ -122,22 +142,15 @@ class ProduitController extends Controller
 
     public function destroy(Produit $produit)
     {
-        $produit->delete();
+        // Désactivation plutôt que suppression physique : un produit déjà vendu
+        // est référencé par des lignes de vente/commande et des mouvements de
+        // stock historiques (contrainte cascade en base) — le supprimer pour de
+        // vrai effacerait silencieusement cet historique. Comme pour les
+        // clients/fournisseurs, on désactive et on le masque du catalogue actif.
+        $produit->update(['active' => false]);
+
         return redirect()->route('produits.index')
-            ->with('success', 'Produit supprimé avec succès.');
-    }
-
-    public function search(Request $request)
-    {
-        $query = $request->input('query');
-        $produits = Produit::where('nom', 'LIKE', "%{$query}%")
-            ->orWhere('reference', 'LIKE', "%{$query}%")
-            ->where('active', true)
-            ->where('stock_actuel', '>', 0)
-            ->with('categorie')
-            ->get();
-
-        return response()->json($produits);
+            ->with('success', 'Produit désactivé et retiré du catalogue actif.');
     }
 
     public function barcode(Produit $produit)
@@ -185,7 +198,7 @@ class ProduitController extends Controller
                 $data = array_combine($header, array_map('trim', $row));
 
                 $nom = $data['nom'] ?? null;
-                if (!$nom) continue;
+                if (!$nom || preg_match('/[<>]/', $nom)) continue;
 
                 $categorieId = $defaultCategorie;
                 if (!empty($data['categorie'])) {

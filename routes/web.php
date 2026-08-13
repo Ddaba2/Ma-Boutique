@@ -7,20 +7,15 @@ use App\Http\Controllers\VenteController;
 use App\Http\Controllers\CategorieController;
 use App\Http\Controllers\RapportController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ClientController;
-use App\Http\Controllers\FournisseurController;
-use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\ClotureCaisseController;
-use App\Http\Controllers\UtilisateurController;
-use App\Http\Controllers\BackupController;
-use App\Http\Controllers\BoutiqueController;
 use App\Http\Controllers\VenteSyncController;
-use App\Http\Controllers\VenteConflitController;
 use App\Http\Controllers\Api\ProduitController as ApiProduitController;
+use App\Http\Controllers\ParametreController;
+use App\Http\Controllers\UtilisateurController;
 
 // Authentification
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:3,1')->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::get('/', fn() => redirect()->route('dashboard'));
@@ -31,69 +26,83 @@ Route::middleware(['auth', 'boutique'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Boutiques (gérant uniquement)
-    Route::middleware(['role:gerant'])->group(function () {
-        Route::resource('boutiques', BoutiqueController::class)->except(['show', 'destroy']);
-        Route::get('/boutiques-selectionner', [BoutiqueController::class, 'selectionner'])->name('boutiques.selectionner');
-        Route::post('/boutique/switch', [BoutiqueController::class, 'switch'])->name('boutiques.switch');
+    // API interne (notifications stock bas, autocomplétion produits)
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::get('/api/produits/search', [ApiProduitController::class, 'search'])->name('api.produits.search');
+        Route::get('/api/stock/alertes', function () {
+            $stocks = \App\Models\BoutiqueProduit::dansBoutique(\App\Support\BoutiqueContext::id())
+                ->enAlerte()
+                ->whereHas('produit', fn($q) => $q->where('active', true))
+                ->with('produit')
+                ->get();
+
+            $produits = $stocks->map(fn($s) => [
+                'id' => $s->produit->id,
+                'nom' => $s->produit->nom,
+                'reference' => $s->produit->reference,
+                'stock_actuel' => $s->stock_actuel,
+                'stock_min' => $s->stock_min,
+            ]);
+
+            return response()->json($produits);
+        })->name('api.stock.alertes');
     });
 
-    // API interne (notifications stock bas)
-    Route::get('/api/produits/search', [ApiProduitController::class, 'search'])->name('api.produits.search');
-    Route::get('/api/stock/alertes', function () {
-        $stocks = \App\Models\BoutiqueProduit::dansBoutique(\App\Support\BoutiqueContext::id())
-            ->enAlerte()
-            ->whereHas('produit', fn($q) => $q->where('active', true))
-            ->with('produit')
-            ->get();
+    // Catégories : réservées au gérant et au gestionnaire
+    Route::middleware(['role:gerant,gestionnaire'])->group(function () {
+        Route::resource('categories', CategorieController::class)
+            ->parameters(['categories' => 'categorie']);
+    });
 
-        $produits = $stocks->map(fn($s) => [
-            'id' => $s->produit->id,
-            'nom' => $s->produit->nom,
-            'reference' => $s->produit->reference,
-            'stock_actuel' => $s->stock_actuel,
-            'stock_min' => $s->stock_min,
-        ]);
-
-        return response()->json($produits);
-    })->name('api.stock.alertes');
-
-    // Catégories
-    // Paramètre nommé explicitement : Str::singular('categories') donnerait "category" (règle
-    // d'inflexion anglaise -ies/-y), qui ne correspond pas à "$categorie" et casserait le
-    // model-binding implicite (résolution silencieuse d'un modèle vide au lieu d'une 404/injection réelle).
-    Route::resource('categories', CategorieController::class)
-        ->parameters(['categories' => 'categorie']);
-
-    // Produits + codes-barres + import CSV
-    Route::resource('produits', ProduitController::class);
+    // Produits + codes-barres. Consultation et création restent accessibles
+    // au caissier (voir README des rôles), cohérent avec le fait qu'il peut
+    // déjà créer un produit à la volée via une entrée de stock. En revanche,
+    // modifier le prix d'un produit existant, le désactiver, ou importer un
+    // catalogue en masse par CSV sont des opérations à risque (le premier
+    // laisse un caissier changer discrètement un prix, le second peut faire
+    // disparaître de l'historique un produit déjà vendu, le troisième touche
+    // potentiellement tout le catalogue) : réservées à gestionnaire/gérant.
+    Route::resource('produits', ProduitController::class)->except(['edit', 'update', 'destroy']);
     Route::get('/produits/{produit}/barcode', [ProduitController::class, 'barcode'])->name('produits.barcode');
     Route::get('/produits-barcodes', [ProduitController::class, 'barcodeAll'])->name('produits.barcode.all');
-    Route::get('/produits-import', [ProduitController::class, 'importForm'])->name('produits.import');
-    Route::post('/produits-import', [ProduitController::class, 'importCsv'])->name('produits.import.csv');
-    Route::get('/produits-import/modele', [ProduitController::class, 'exportCsvTemplate'])->name('produits.import.modele');
+
+    Route::middleware(['role:gerant,gestionnaire'])->group(function () {
+        Route::get('/produits/{produit}/edit', [ProduitController::class, 'edit'])->name('produits.edit');
+        Route::put('/produits/{produit}', [ProduitController::class, 'update'])->name('produits.update');
+        Route::delete('/produits/{produit}', [ProduitController::class, 'destroy'])->name('produits.destroy');
+        Route::get('/produits-import', [ProduitController::class, 'importForm'])->name('produits.import');
+        Route::post('/produits-import', [ProduitController::class, 'importCsv'])->name('produits.import.csv');
+        Route::get('/produits-import/modele', [ProduitController::class, 'exportCsvTemplate'])->name('produits.import.modele');
+    });
 
     // Ventes
-    Route::resource('ventes', VenteController::class);
+    // "destroy" est à part : annuler une vente déjà encaissée (pas la
+    // supprimer, voir VenteController::destroy) doit rester réservé à
+    // gestionnaire/gérant, pas au caissier qui l'a enregistrée.
+    Route::resource('ventes', VenteController::class)->except(['destroy']);
     Route::get('/ventes/{vente}/facture', [VenteController::class, 'facture'])->name('ventes.facture');
     Route::get('/ventes/{vente}/ticket', [VenteController::class, 'ticket'])->name('ventes.ticket');
 
-    // Synchronisation des ventes créées hors-ligne (file d'attente IndexedDB)
-    Route::post('/api/ventes/sync', [VenteSyncController::class, 'sync'])->name('api.ventes.sync');
-    Route::get('/api/csrf-refresh', [VenteSyncController::class, 'rafraichirCsrf'])->name('api.csrf.refresh');
-
-    // Ventes synchronisées avec un conflit de stock à résoudre manuellement
     Route::middleware(['role:gerant,gestionnaire'])->group(function () {
-        Route::get('/ventes-conflits', [VenteConflitController::class, 'index'])->name('ventes.conflits');
-        Route::post('/ventes/{vente}/resoudre-conflit', [VenteConflitController::class, 'resoudre'])->name('ventes.conflits.resoudre');
+        Route::delete('/ventes/{vente}', [VenteController::class, 'destroy'])->name('ventes.destroy');
     });
+
+    // Synchronisation des ventes créées hors-ligne (file d'attente IndexedDB)
+    Route::post('/api/ventes/sync', [VenteSyncController::class, 'sync'])
+        ->middleware('throttle:30,1')
+        ->name('api.ventes.sync');
+    Route::get('/api/csrf-refresh', [VenteSyncController::class, 'rafraichirCsrf'])->name('api.csrf.refresh');
 
     // Stocks
     Route::get('/stocks', [\App\Http\Controllers\StockController::class, 'index'])->name('stocks.index');
     Route::get('/stocks/create', [\App\Http\Controllers\StockController::class, 'create'])->name('stocks.create');
     Route::post('/stocks', [\App\Http\Controllers\StockController::class, 'store'])->name('stocks.store');
+    Route::get('/stocks/mouvements', [\App\Http\Controllers\StockController::class, 'mouvements'])->name('stocks.mouvements');
+    Route::get('/stocks/{produit}/historique', [\App\Http\Controllers\StockController::class, 'historique'])->name('stocks.historique');
+    Route::get('/stocks/{produit}/ajuster', [\App\Http\Controllers\StockController::class, 'ajusterForm'])->name('stocks.ajuster.form');
+    Route::post('/stocks/{produit}/ajuster', [\App\Http\Controllers\StockController::class, 'ajuster'])->name('stocks.ajuster');
 
-    // Rapports
+    // Rapports (affichage + exports PDF/CSV) : accessibles à tous les rôles authentifiés
     Route::get('/rapports', [RapportController::class, 'index'])->name('rapports.index');
     Route::get('/rapports/ventes', [RapportController::class, 'ventes'])->name('rapports.ventes');
     Route::get('/rapports/stocks', [RapportController::class, 'stocks'])->name('rapports.stocks');
@@ -103,29 +112,24 @@ Route::middleware(['auth', 'boutique'])->group(function () {
     Route::get('/rapports/export/pdf/stocks', [RapportController::class, 'exportPdfStocks'])->name('rapports.export.pdf.stocks');
     Route::get('/rapports/export/pdf/complete', [RapportController::class, 'exportPdfComplete'])->name('rapports.export.pdf.complete');
 
-    // Clients
-    Route::resource('clients', ClientController::class);
-
-    // Fournisseurs (gestionnaire + gérant)
-    Route::middleware(['role:gerant,gestionnaire'])->group(function () {
-        Route::resource('fournisseurs', FournisseurController::class);
-        Route::resource('commandes', CommandeController::class);
-        Route::patch('/commandes/{commande}/statut', [CommandeController::class, 'update'])->name('commandes.statut');
-        Route::get('/commandes/{commande}/pdf', [CommandeController::class, 'pdf'])->name('commandes.pdf');
+    // Clôture de caisse : réservée au gérant
+    Route::middleware(['role:gerant'])->group(function () {
+        Route::get('/caisse', [ClotureCaisseController::class, 'index'])->name('caisse.index');
+        Route::get('/caisse/create', [ClotureCaisseController::class, 'create'])->name('caisse.create');
+        Route::post('/caisse', [ClotureCaisseController::class, 'store'])->name('caisse.store');
+        Route::get('/caisse/{caisse}', [ClotureCaisseController::class, 'show'])->name('caisse.show');
     });
 
-    // Clôture de caisse
-    Route::get('/caisse', [ClotureCaisseController::class, 'index'])->name('caisse.index');
-    Route::get('/caisse/create', [ClotureCaisseController::class, 'create'])->name('caisse.create');
-    Route::post('/caisse', [ClotureCaisseController::class, 'store'])->name('caisse.store');
-    Route::get('/caisse/{caisse}', [ClotureCaisseController::class, 'show'])->name('caisse.show');
-
-    // Utilisateurs et sauvegardes (gérant seulement)
+    // Paramètres (gérant seulement) : utilisateurs + sauvegarde/restauration,
+    // réunis dans une seule page à onglets plutôt que des écrans séparés.
     Route::middleware(['role:gerant'])->group(function () {
-        Route::resource('utilisateurs', UtilisateurController::class)->except(['show']);
-        Route::get('/sauvegardes', [BackupController::class, 'index'])->name('sauvegardes.index');
-        Route::post('/sauvegardes', [BackupController::class, 'store'])->name('sauvegardes.store');
-        Route::get('/sauvegardes/download', [BackupController::class, 'download'])->name('sauvegardes.download');
-        Route::delete('/sauvegardes', [BackupController::class, 'destroy'])->name('sauvegardes.destroy');
+        Route::get('/parametres', [ParametreController::class, 'index'])->name('parametres.index');
+
+        Route::resource('utilisateurs', UtilisateurController::class)
+            ->only(['create', 'store', 'edit', 'update', 'destroy']);
+
+        Route::post('/sauvegardes', [\App\Http\Controllers\SauvegardeController::class, 'store'])->name('sauvegardes.store');
+        Route::post('/sauvegardes/restaurer', [\App\Http\Controllers\SauvegardeController::class, 'restaurer'])->name('sauvegardes.restaurer');
+        Route::get('/sauvegardes/{fichier}/telecharger', [\App\Http\Controllers\SauvegardeController::class, 'telecharger'])->name('sauvegardes.telecharger');
     });
 });

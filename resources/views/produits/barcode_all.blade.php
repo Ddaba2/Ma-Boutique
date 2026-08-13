@@ -42,19 +42,26 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+@vite(['resources/js/barcode.js'])
 <script>
-    document.querySelectorAll('.barcode-svg').forEach(svg => {
-        JsBarcode(svg, svg.dataset.ref, {
-            format: "CODE128",
-            width: 1.5,
-            height: 40,
-            displayValue: true,
-            fontSize: 10,
-            margin: 5
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.barcode-svg').forEach(svg => {
+            JsBarcode(svg, svg.dataset.ref, {
+                format: "CODE128",
+                width: 1.5,
+                height: 40,
+                displayValue: true,
+                fontSize: 10,
+                margin: 5
+            });
         });
     });
 
+    // La fenêtre de "tout imprimer" ci-dessous ouvre un document totalement
+    // séparé (window.open) qui n'hérite pas des scripts déjà chargés dans
+    // cette page : elle a donc besoin de sa propre copie de JsBarcode. Reste
+    // en CDN (n'affecte que ce popup d'impression groupée, pas l'affichage
+    // normal de cette page qui fonctionne désormais hors-ligne).
     function imprimerTout() {
         const etiquettes = document.querySelectorAll('.etiquette');
         let html = '';

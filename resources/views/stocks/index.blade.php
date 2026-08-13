@@ -90,6 +90,9 @@
                         <a href="{{ route('stocks.create') }}" class="btn btn-success">
                             <i class="fas fa-plus me-2"></i>Ajouter du stock
                         </a>
+                        <a href="{{ route('stocks.mouvements') }}" class="btn btn-outline-info">
+                            <i class="fas fa-exchange-alt me-2"></i>Mouvements
+                        </a>
                         <a href="{{ route('rapports.export.pdf.stocks') }}" class="btn btn-danger">
                             <i class="fas fa-file-pdf me-2"></i>Télécharger PDF
                         </a>
@@ -155,12 +158,12 @@
                                                 <a href="{{ route('stocks.create', ['produit_id' => $produit->id]) }}" class="btn btn-outline-success" title="Ajouter au stock">
                                                     <i class="fas fa-plus"></i>
                                                 </a>
-                                                <button onclick="showStockHistory({{ $produit->id }})" class="btn btn-outline-info" title="Historique">
+                                                <a href="{{ route('stocks.historique', $produit->id) }}" class="btn btn-outline-info" title="Historique">
                                                     <i class="fas fa-history"></i>
-                                                </button>
-                                                <button onclick="adjustStock({{ $produit->id }})" class="btn btn-outline-warning" title="Ajuster">
+                                                </a>
+                                                <a href="{{ route('stocks.ajuster.form', $produit->id) }}" class="btn btn-outline-warning" title="Ajuster après comptage">
                                                     <i class="fas fa-edit"></i>
-                                                </button>
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
@@ -196,21 +199,6 @@
 
             </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Fonctions pour la gestion des stocks
-    window.showStockHistory = function(produitId) {
-        console.log('Afficher l\'historique du stock pour le produit:', produitId);
-        // Implémenter la modal d'historique
-    };
-    
-    window.adjustStock = function(produitId) {
-        console.log('Ajuster le stock du produit:', produitId);
-        // Implémenter la modal d'ajustement
-    };
-});
-</script>
 
 <style>
 /* Styles identiques à la page vente */

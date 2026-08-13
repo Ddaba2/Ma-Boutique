@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBoutique;
+use App\Support\ReferenceSequence;
 use Illuminate\Database\Eloquent\Model;
 
 class MouvementStock extends Model
@@ -39,9 +40,6 @@ class MouvementStock extends Model
 
     public static function generateReference()
     {
-        $prefix = 'STK';
-        $date = now()->format('Ymd');
-        $last = self::whereDate('created_at', now()->format('Y-m-d'))->lockForUpdate()->count();
-        return $prefix . $date . str_pad($last + 1, 4, '0', STR_PAD_LEFT);
+        return ReferenceSequence::next('mouvements_stock_' . now()->format('Ymd'), 'STK' . now()->format('Ymd'), 4);
     }
 }

@@ -75,17 +75,9 @@
                     <a href="{{ route('stocks.create') }}" class="btn btn-success btn-sm">
                         <i class="fas fa-plus me-1"></i>Entrée stock
                     </a>
-                    <a href="{{ route('clients.create') }}" class="btn btn-info btn-sm text-white">
-                        <i class="fas fa-user-plus me-1"></i>Nouveau client
-                    </a>
                     <a href="{{ route('caisse.create') }}" class="btn btn-warning btn-sm text-dark">
                         <i class="fas fa-cash-register me-1"></i>Clôturer caisse
                     </a>
-                    @if(in_array(auth()->user()->role ?? '', ['gerant','gestionnaire']))
-                    <a href="{{ route('commandes.create') }}" class="btn btn-secondary btn-sm">
-                        <i class="fas fa-file-invoice me-1"></i>Bon de commande
-                    </a>
-                    @endif
                 </div>
             </div>
         </div>
@@ -178,8 +170,14 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+@vite(['resources/js/charts.js'])
 <script>
+// resources/js/charts.js est chargé en tant que module (déféré par nature) :
+// on attend DOMContentLoaded pour être sûr que window.Chart est bien défini
+// avant de l'utiliser ici, l'ordre d'exécution entre un <script type=module>
+// et un <script> classique n'étant pas celui qu'on aurait avec un simple
+// <script src="..."> synchrone comme auparavant.
+document.addEventListener('DOMContentLoaded', function () {
     const palette = {
         blue:   'rgba(37,99,235,',
         green:  'rgba(34,197,94,',
@@ -274,5 +272,6 @@
             }
         }
     });
+});
 </script>
 @endsection

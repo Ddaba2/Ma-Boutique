@@ -64,7 +64,7 @@
 
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Créer</button>
-                        <a href="{{ route('utilisateurs.index') }}" class="btn btn-outline-secondary">Annuler</a>
+                        <a href="{{ route('parametres.index') }}" class="btn btn-outline-secondary">Annuler</a>
                     </div>
                 </form>
             </div>

@@ -45,14 +45,18 @@
                                         <label for="produit_nom" class="form-label fw-semibold">
                                             <i class="fas fa-tag me-1"></i>Nom du produit *
                                         </label>
-                                        <input type="text" class="form-control form-control-lg" id="produit_nom" name="produit_nom" 
-                                               placeholder="Entrez le nom du produit" 
-                                               value="{{ old('produit_nom') }}"
-                                               required>
+                                        <div class="position-relative">
+                                            <input type="text" class="form-control form-control-lg" id="produit_nom" name="produit_nom"
+                                                   placeholder="Entrez le nom du produit"
+                                                   value="{{ old('produit_nom') }}"
+                                                   autocomplete="off"
+                                                   required>
+                                            <div id="produit-suggestions" class="autocomplete-suggestions shadow-lg rounded-3 d-none"></div>
+                                        </div>
                                         @error('produit_nom')
                                             <div class="text-danger small mt-1">{{ $message }}</div>
                                         @enderror
-                                        <div class="form-text">Commencez à taper pour rechercher un produit existant ou entrez un nouveau nom</div>
+                                        <div class="form-text">Commencez à taper pour rechercher un produit existant (y compris en rupture) ou entrez un nouveau nom</div>
                                     </div>
                                 </div>
                             </div>
@@ -277,17 +281,95 @@
     </div>
 </div>
 
+<style>
+.autocomplete-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 250px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+}
+.autocomplete-suggestion {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+}
+.autocomplete-suggestion:last-child { border-bottom: none; }
+.autocomplete-suggestion:hover { background: #f8fafc; }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-complétion pour le nom du produit
+    // Auto-complétion pour le nom du produit : cherche parmi les produits déjà
+    // au catalogue (y compris en rupture, voir inclure_ruptures=1) pour éviter
+    // de recréer un doublon par simple faute de frappe, et préremplit les prix
+    // quand un produit existant est choisi.
     const produitNomInput = document.getElementById('produit_nom');
-    
+    const suggestionsDiv = document.getElementById('produit-suggestions');
+    const prixAchatInput = document.getElementById('prix_achat');
+    const prixVenteInput = document.getElementById('prix_vente');
+    let debounceTimer = null;
+    let requeteEnCours = null;
+    let produitChoisiId = null;
+
     produitNomInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        if (searchTerm.length < 2) return;
-        
-        // Ici vous pouvez ajouter une logique d'auto-complétion
-        // Pour l'instant, nous laissons le champ libre
+        produitChoisiId = null;
+        const query = this.value.trim();
+        clearTimeout(debounceTimer);
+
+        if (query.length < 2) {
+            suggestionsDiv.classList.add('d-none');
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            if (requeteEnCours) requeteEnCours.abort();
+            requeteEnCours = new AbortController();
+
+            fetch(`/api/produits/search?q=${encodeURIComponent(query)}&inclure_ruptures=1`, { signal: requeteEnCours.signal })
+                .then(res => res.json())
+                .then(produits => {
+                    suggestionsDiv.innerHTML = '';
+                    if (produits.length === 0) {
+                        suggestionsDiv.classList.add('d-none');
+                        return;
+                    }
+
+                    produits.forEach(prod => {
+                        const div = document.createElement('div');
+                        div.className = 'autocomplete-suggestion';
+                        div.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>${escapeHtml(prod.nom)}</strong>
+                                <small class="text-muted">Stock actuel : ${prod.stock_actuel}</small>
+                            </div>
+                        `;
+                        div.addEventListener('click', () => {
+                            produitNomInput.value = prod.nom;
+                            produitChoisiId = prod.id;
+                            if (prixAchatInput && !prixAchatInput.value) prixAchatInput.value = prod.prix_achat ?? '';
+                            if (prixVenteInput && !prixVenteInput.value) prixVenteInput.value = prod.prix_vente ?? '';
+                            suggestionsDiv.classList.add('d-none');
+                        });
+                        suggestionsDiv.appendChild(div);
+                    });
+                    suggestionsDiv.classList.remove('d-none');
+                })
+                .catch(err => {
+                    if (err.name !== 'AbortError') console.error('Erreur recherche produits:', err);
+                });
+        }, 300);
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!produitNomInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.classList.add('d-none');
+        }
     });
 });
 </script>

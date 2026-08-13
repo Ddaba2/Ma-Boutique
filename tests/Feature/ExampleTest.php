@@ -19,4 +19,14 @@ class ExampleTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_le_login_est_limite_apres_plusieurs_tentatives(): void
+    {
+        for ($i = 0; $i < 3; $i++) {
+            $this->post('/login', ['username' => 'inconnu@test.com', 'password' => 'mauvais']);
+        }
+
+        $this->post('/login', ['username' => 'inconnu@test.com', 'password' => 'mauvais'])
+            ->assertStatus(429);
+    }
 }

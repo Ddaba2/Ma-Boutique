@@ -9,12 +9,6 @@ use Illuminate\Support\Facades\Hash;
 
 class UtilisateurController extends Controller
 {
-    public function index()
-    {
-        $utilisateurs = User::with('boutique')->orderBy('name')->get();
-        return view('utilisateurs.index', compact('utilisateurs'));
-    }
-
     public function create()
     {
         $boutiques = Boutique::where('active', true)->orderBy('nom')->get();
@@ -40,7 +34,7 @@ class UtilisateurController extends Controller
             'active'      => true,
         ]);
 
-        return redirect()->route('utilisateurs.index')
+        return redirect()->route('parametres.index')
             ->with('success', 'Utilisateur créé avec succès.');
     }
 
@@ -75,7 +69,7 @@ class UtilisateurController extends Controller
 
         $utilisateur->update($data);
 
-        return redirect()->route('utilisateurs.index')
+        return redirect()->route('parametres.index')
             ->with('success', 'Utilisateur mis à jour avec succès.');
     }
 
@@ -86,7 +80,7 @@ class UtilisateurController extends Controller
         }
 
         $utilisateur->update(['active' => false]);
-        return redirect()->route('utilisateurs.index')
+        return redirect()->route('parametres.index')
             ->with('success', 'Utilisateur désactivé.');
     }
 }

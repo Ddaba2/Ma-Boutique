@@ -12,8 +12,9 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Garantit qu'une boutique est sélectionnée en session avant d'accéder aux
  * pages métier. Un caissier/gestionnaire est toujours rattaché à une boutique
- * fixe (users.boutique_id) ; un gérant sans boutique choisie doit en choisir
- * une (ou n'en a tout simplement aucune encore créée).
+ * fixe (users.boutique_id). Il n'existe plus d'écran de gestion/sélection de
+ * boutiques (application mono-boutique) : un gérant sans boutique assignée
+ * bascule automatiquement sur l'unique boutique active existante.
  */
 class EnsureBoutiqueSelected
 {
@@ -30,19 +31,14 @@ class EnsureBoutiqueSelected
             return $next($request);
         }
 
-        if ($request->routeIs('boutiques.*')) {
-            return $next($request);
+        $boutique = Boutique::where('active', true)->orderBy('id')->first();
+
+        if (!$boutique) {
+            abort(500, "Aucune boutique n'est configurée. Contactez votre prestataire.");
         }
 
-        if ($user->role !== 'gerant') {
-            abort(403, 'Aucune boutique ne vous est assignée. Contactez le gérant.');
-        }
+        BoutiqueContext::definir($boutique->id);
 
-        if (Boutique::where('active', true)->doesntExist()) {
-            return redirect()->route('boutiques.create')
-                ->with('info', 'Créez votre première boutique pour commencer.');
-        }
-
-        return redirect()->route('boutiques.selectionner');
+        return $next($request);
     }
 }

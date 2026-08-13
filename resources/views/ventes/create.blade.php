@@ -9,7 +9,7 @@
     <div class="col-xl-8 col-lg-7 mb-4">
         <div class="card animate-fadeInUp h-100">
             <div class="card-header bg-success text-white py-3">
-                <h5 class="card-title mb-0 fw-bold">
+                <h5 class="card-title mb-0 fw-bold text-white">
                     <i class="fas fa-shopping-cart me-2"></i>
                     Panier de Vente
                 </h5>
@@ -199,88 +199,107 @@
 
     <!-- Prévisualisation de la Facture (Droite) -->
     <div class="col-xl-4 col-lg-5 mb-4 no-print">
-        <div class="card animate-fadeInUp h-100">
+        <div class="card animate-fadeInUp facture-preview-sticky">
             <div class="card-header bg-primary text-white py-3">
-                <h5 class="card-title mb-0 fw-bold">
+                <h5 class="card-title mb-0 fw-bold text-white">
                     <i class="fas fa-receipt me-2"></i>
                     Aperçu de la Facture
                 </h5>
             </div>
             <div class="card-body p-0">
-                <div class="facture-container p-4 bg-white shadow-sm">
-                    <!-- En-tête -->
-                    <div class="facture-header p-3 text-white rounded-3 mb-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h4 class="mb-0 fw-bold">GesBoutique</h4>
-                                <small>Matériel Informatique & Mobilier</small>
+                @php
+                    $branding = \App\Support\PdfBranding::resolve();
+                    $logoUrl = \App\Support\PdfBranding::logoUrl();
+                @endphp
+                <div class="facture-container bg-white">
+                    <div class="facture-top-band p-3 text-white">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="facture-logo-slot flex-shrink-0">
+                                @if($logoUrl)
+                                    <img src="{{ $logoUrl }}" alt="Logo" class="facture-logo-img">
+                                @else
+                                    <span class="facture-logo-placeholder">LOGO</span>
+                                @endif
                             </div>
-                            <div class="text-end">
-                                <span class="badge bg-light text-dark fw-bold">FACTURE</span>
+                            <div class="flex-grow-1 min-w-0">
+                                <h4 class="mb-1 fw-bold text-white">{{ $branding['nom'] }}</h4>
+                                @if($branding['nif'])<div class="facture-meta">NIF : {{ $branding['nif'] }}</div>@endif
+                                <div class="facture-meta">{{ $branding['adresse'] ?: 'Adresse de l\'entreprise' }}</div>
+                                @if($branding['telephone'])<div class="facture-meta">Tél : {{ $branding['telephone'] }}</div>@endif
+                            </div>
+                            <div class="text-end flex-shrink-0">
+                                <div class="facture-doc-title">FACTURE</div>
+                                <div class="facture-doc-ref" id="facture_numero">-</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Infos Facture -->
-                    <div class="row mb-3 small">
-                        <div class="col-6">
-                            <span class="text-muted d-block">Facturé à :</span>
-                            <strong id="facture_client" class="text-dark">Client Comptant</strong>
-                            <span id="facture_telephone" class="d-block text-muted">-</span>
+                    <div class="p-3">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="facture-info-box h-100">
+                                    <div class="facture-info-label">Facturé à</div>
+                                    <strong id="facture_client" class="d-block text-dark">Client Comptant</strong>
+                                    <span id="facture_telephone" class="small text-muted d-block">-</span>
+                                    <div class="facture-address mt-2 pt-2 border-top border-light-subtle small">
+                                        <span class="text-muted">Adresse :</span>
+                                        <span id="facture_adresse" class="text-muted">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="facture-info-box h-100">
+                                    <div class="facture-info-label">Détails</div>
+                                    <div class="small text-muted">Date : {{ date('d/m/Y') }}</div>
+                                    <div class="small text-muted">Heure : {{ date('H:i') }}</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6 text-end">
-                            <span class="text-muted d-block">N° Facture :</span>
-                            <strong id="facture_numero" class="text-primary font-monospace">-</strong>
-                            <span class="d-block text-muted">Date: {{ date('d/m/Y') }}</span>
-                        </div>
-                    </div>
 
-                    <!-- Tableau des articles -->
-                    <div class="table-responsive mb-3">
-                        <table class="table table-sm table-bordered small">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Article</th>
-                                    <th class="text-center" style="width: 40px;">Qté</th>
-                                    <th class="text-end" style="width: 70px;">P.U.</th>
-                                    <th class="text-end" style="width: 80px;">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="facture-tbody">
-                                <tr>
-                                    <td colspan="4" class="text-center py-4 text-muted">Panier vide</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm facture-table small mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Article</th>
+                                        <th class="text-center" style="width: 40px;">Qté</th>
+                                        <th class="text-end" style="width: 70px;">P.U.</th>
+                                        <th class="text-end" style="width: 80px;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="facture-tbody">
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">Panier vide</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                    <!-- Totaux -->
-                    <div class="border-top pt-3 small">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted">Total HT :</span>
-                            <span class="fw-bold"><span id="facture_total_ht">0</span> FCFA</span>
+                        <div class="facture-totals small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Sous-total HT</span>
+                                <span class="fw-bold"><span id="facture_total_ht">0</span> FCFA</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">TVA (0%)</span>
+                                <span class="fw-bold">0 FCFA</span>
+                            </div>
+                            <div class="facture-grand-total d-flex justify-content-between align-items-center px-3 py-2 rounded mb-2">
+                                <span class="fw-bold">NET À PAYER</span>
+                                <strong><span id="facture_grand_total">0</span> FCFA</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1 text-success">
+                                <span>Montant reçu</span>
+                                <span><span id="facture_recu">0</span> FCFA</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-info fw-bold">
+                                <span>Monnaie</span>
+                                <span><span id="facture_reste">0</span> FCFA</span>
+                            </div>
                         </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted">TVA (0%) :</span>
-                            <span class="fw-bold">0 FCFA</span>
-                        </div>
-                        <div class="d-flex justify-content-between border-top border-dark pt-2 mb-2">
-                            <span class="fw-bold text-dark fs-6">Net à payer :</span>
-                            <strong class="text-primary fs-6"><span id="facture_grand_total">0</span> FCFA</strong>
-                        </div>
-                        <div class="d-flex justify-content-between mb-1 text-success">
-                            <span class="small">Montant Reçu :</span>
-                            <span class="small"><span id="facture_recu">0</span> FCFA</span>
-                        </div>
-                        <div class="d-flex justify-content-between text-info fw-bold">
-                            <span class="small">Rendu :</span>
-                            <span class="small"><span id="facture_reste">0</span> FCFA</span>
-                        </div>
-                    </div>
 
-                    <!-- Pied de page -->
-                    <div class="text-center text-muted small mt-4 pt-3 border-top">
-                        Merci pour votre confiance !
+                        <div class="text-center text-muted small mt-3 pt-3 border-top">
+                            Merci pour votre confiance !
+                        </div>
                     </div>
                 </div>
             </div>
@@ -318,16 +337,103 @@
     background: #f8fafc;
 }
 
-/* Styles pour la facture professionnelle */
+/* Styles pour l'aperçu facture */
+.facture-preview-sticky {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+}
+
 .facture-container {
     border: 1px solid #e5e7eb;
     border-radius: 12px;
+    overflow: hidden;
 }
 
-.facture-header {
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+.facture-top-band {
+    background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+}
+.facture-top-band h4 {
+    color: #fff;
+    font-size: 1rem;
+}
+
+.facture-logo-slot {
+    width: 64px;
+    height: 64px;
+    background: #fff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.facture-logo-img {
+    max-width: 56px;
+    max-height: 56px;
+}
+
+.facture-logo-placeholder {
+    font-size: 9px;
+    font-weight: 700;
+    color: #9ca3af;
+}
+
+.facture-meta {
+    font-size: 0.72rem;
+    color: #dbeafe;
+    line-height: 1.35;
+}
+
+.facture-doc-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.facture-doc-ref {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #bfdbfe;
+    font-family: ui-monospace, monospace;
+}
+
+.facture-info-box {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.facture-info-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.facture-table thead th {
+    background: #1e3a5f;
+    color: #fff;
+    border: none;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+}
+
+.facture-table tbody td {
+    border-color: #e5e7eb;
+}
+
+.facture-grand-total {
+    background: #1e3a5f;
+    color: #fff;
 }
 </style>
+@endsection
 
 @section('scripts')
 <script>
@@ -344,6 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const montantRecuInput = document.getElementById('montant_recu');
     const resteDiv = document.getElementById('reste');
     const btnValider = document.getElementById('btn-valider-vente');
+    const venteForm = document.getElementById('venteForm');
     
     // Éléments de l'aperçu facture
     const factureClient = document.getElementById('facture_client');
@@ -358,6 +465,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Variables d'état
     let selectedProduct = null;
     let cart = [];
+    let debounceTimer = null;
+    let rechercheEnCours = null;
+
+    // Remplace les popups alert() natifs (bloquants, à fermer un par un) par
+    // une alerte Bootstrap discrète et cohérente avec le reste de l'appli.
+    function notifier(message, type = 'danger') {
+        const conteneur = document.querySelector('.card-body.p-4');
+        const alerte = document.createElement('div');
+        alerte.className = `alert alert-${type} alert-dismissible fade show`;
+        alerte.innerHTML = `<i class="fas fa-${type === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2"></i>${escapeHtml(message)}` +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        conteneur.prepend(alerte);
+        setTimeout(() => alerte.remove(), 6000);
+    }
+
+    // Une douchette USB envoie le code puis "Entrée" quasi instantanément.
+    // Sans ce garde-fou, Entrée dans n'importe quel champ du formulaire
+    // déclenche la soumission native du navigateur — donc la validation
+    // prématurée de toute la vente dès qu'un 2e article est scanné.
+    venteForm.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target !== btnValider) {
+            e.preventDefault();
+        }
+    });
 
     // Générer numéro de facture automatique
     const factNum = 'V' + new Date().getFullYear() + 
@@ -375,49 +506,99 @@ document.addEventListener('DOMContentLoaded', function() {
         factureTelephone.textContent = this.value || '-';
     });
 
-    // Recherche de produits AJAX
+    // Interroge l'API produits en annulant toute requête précédente encore en
+    // vol (évite qu'une réponse lente arrivée en retard n'écrase l'affichage
+    // d'une recherche plus récente sur un réseau lent/instable).
+    function rechercherProduits(query) {
+        if (rechercheEnCours) rechercheEnCours.abort();
+        rechercheEnCours = new AbortController();
+        return fetch(`/api/produits/search?q=${encodeURIComponent(query)}`, { signal: rechercheEnCours.signal })
+            .then(res => res.json());
+    }
+
+    function afficherResultats(produits) {
+        resultsDiv.innerHTML = '';
+        if (produits.length === 0) {
+            resultsDiv.innerHTML = '<div class="p-3 text-muted">Aucun produit trouvé</div>';
+            resultsDiv.classList.remove('d-none');
+            return;
+        }
+
+        produits.forEach(prod => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-suggestion';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-light text-dark me-2 font-monospace">${prod.stock_actuel > 0 ? 'Disponible' : 'Rupture'}</span>
+                        <strong>${escapeHtml(prod.nom)}</strong>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold text-success">${parseInt(prod.prix_vente)} FCFA</span><br>
+                        <small class="text-muted">Stock: ${prod.stock_actuel}</small>
+                    </div>
+                </div>
+            `;
+            div.addEventListener('click', () => {
+                selectProduct(prod);
+            });
+            resultsDiv.appendChild(div);
+        });
+        resultsDiv.classList.remove('d-none');
+    }
+
+    function gererErreurRecherche(err) {
+        if (err.name !== 'AbortError') {
+            console.error('Erreur recherche produits:', err);
+        }
+    }
+
+    // Recherche de produits AJAX, avec un léger délai pour ne pas envoyer une
+    // requête à chaque frappe sur une connexion lente.
     searchInput.addEventListener('input', function() {
         const query = this.value.trim();
+        clearTimeout(debounceTimer);
+
         if (query.length < 2) {
             resultsDiv.classList.add('d-none');
             return;
         }
 
-        fetch(`/api/produits/search?q=${encodeURIComponent(query)}`)
-            .then(res => res.json())
-            .then(produits => {
-                resultsDiv.innerHTML = '';
-                if (produits.length === 0) {
-                    resultsDiv.innerHTML = '<div class="p-3 text-muted">Aucun produit trouvé</div>';
-                    resultsDiv.classList.remove('d-none');
-                    return;
-                }
+        debounceTimer = setTimeout(() => {
+            rechercherProduits(query).then(afficherResultats).catch(gererErreurRecherche);
+        }, 300);
+    });
 
-                produits.forEach(prod => {
-                    const div = document.createElement('div');
-                    div.className = 'autocomplete-suggestion';
-                    div.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="badge bg-light text-dark me-2 font-monospace">${prod.stock_actuel > 0 ? 'Disponible' : 'Rupture'}</span>
-                                <strong>${prod.nom}</strong>
-                            </div>
-                            <div class="text-end">
-                                <span class="fw-bold text-success">${parseInt(prod.prix_vente)} FCFA</span><br>
-                                <small class="text-muted">Stock: ${prod.stock_actuel}</small>
-                            </div>
-                        </div>
-                    `;
-                    div.addEventListener('click', () => {
-                        selectProduct(prod);
-                    });
-                    resultsDiv.appendChild(div);
-                });
-                resultsDiv.classList.remove('d-none');
+    // Une douchette code-barres tape le code puis envoie "Entrée" quasi
+    // instantanément : on intercepte cette touche pour chercher et ajouter le
+    // produit directement au panier, sans jamais laisser Entrée soumettre le
+    // formulaire de vente (voir le garde-fou posé sur venteForm plus haut).
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+
+        const query = this.value.trim();
+        if (query.length < 2) return;
+
+        clearTimeout(debounceTimer);
+        rechercherProduits(query)
+            .then(produits => {
+                if (produits.length === 1) {
+                    selectProduct(produits[0]);
+                    btnAjouter.click();
+                } else {
+                    afficherResultats(produits);
+                }
             })
-            .catch(err => {
-                console.error('Erreur recherche produits:', err);
-            });
+            .catch(gererErreurRecherche);
+    });
+
+    // Entrée dans le champ quantité ajoute directement le produit sélectionné.
+    inputQuantite.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            btnAjouter.click();
+        }
     });
 
     // Masquer l'autocomplétion lors d'un clic en dehors
@@ -446,18 +627,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ajouter un produit au panier
     btnAjouter.addEventListener('click', function() {
         if (!selectedProduct) {
-            alert('Veuillez d\'abord rechercher et sélectionner un produit.');
+            notifier('Veuillez d\'abord rechercher et sélectionner un produit.');
             return;
         }
 
         const qty = parseInt(inputQuantite.value) || 1;
         if (qty < 1) {
-            alert('La quantité doit être supérieure ou égale à 1.');
+            notifier('La quantité doit être supérieure ou égale à 1.');
             return;
         }
 
         if (qty > selectedProduct.stock_actuel) {
-            alert(`Stock insuffisant. Quantité maximale disponible : ${selectedProduct.stock_actuel}`);
+            notifier(`Stock insuffisant. Quantité maximale disponible : ${selectedProduct.stock_actuel}`);
             return;
         }
 
@@ -466,7 +647,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (existingItem) {
             const newQty = existingItem.quantity + qty;
             if (newQty > selectedProduct.stock_actuel) {
-                alert(`Impossible d'ajouter cette quantité. Le stock total dépasserait la limite disponible (${selectedProduct.stock_actuel}).`);
+                notifier(`Impossible d'ajouter cette quantité. Le stock total dépasserait la limite disponible (${selectedProduct.stock_actuel}).`);
                 return;
             }
             existingItem.quantity = newQty;
@@ -527,7 +708,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const trCart = document.createElement('tr');
             trCart.innerHTML = `
                 <td class="px-4">
-                    <strong class="d-block text-dark">${item.product.nom}</strong>
+                    <strong class="d-block text-dark">${escapeHtml(item.product.nom)}</strong>
                     <small class="text-muted font-monospace">Ref: PROD-${String(item.product.id).padStart(4, '0')}</small>
                     <!-- Champs cachés pour l'envoi du formulaire -->
                     <input type="hidden" name="produit_ids[]" value="${item.product.id}">
@@ -553,7 +734,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Ligne pour l'aperçu facture (Droite)
             const trFacture = document.createElement('tr');
             trFacture.innerHTML = `
-                <td>${item.product.nom}</td>
+                <td>${escapeHtml(item.product.nom)}</td>
                 <td class="text-center">${item.quantity}</td>
                 <td class="text-end">${parseInt(item.price).toLocaleString()}</td>
                 <td class="text-end">${parseInt(lineTotal).toLocaleString()}</td>
@@ -579,7 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cart[idx].quantity++;
                     updateCartUI();
                 } else {
-                    alert('Stock limite atteint pour ce produit.');
+                    notifier('Stock limite atteint pour ce produit.');
                 }
             });
         });
@@ -592,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (val < 1) val = 1;
                 if (val > max) {
-                    alert(`Stock insuffisant. Limité à ${max}.`);
+                    notifier(`Stock insuffisant. Limité à ${max}.`);
                     val = max;
                 }
 
@@ -652,30 +833,46 @@ document.addEventListener('DOMContentLoaded', function() {
         updateTotals(total);
     });
 
+    // Envoie la vente ; si le jeton CSRF est périmé (page servie depuis le
+    // cache du service worker après une coupure, voir public/sw.js), le
+    // rafraîchit et retente une fois avant d'abandonner — sinon une page mise
+    // en cache affiche "Page expirée" au lieu de basculer proprement en
+    // file d'attente hors-ligne.
+    async function soumettreVente(formData, tentative) {
+        const response = await fetch(venteForm.action, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+        });
+
+        if (response.status === 419 && tentative === 1) {
+            const refresh = await fetch('/api/csrf-refresh');
+            const { token } = await refresh.json();
+            venteForm.querySelector('input[name="_token"]').value = token;
+            formData.set('_token', token);
+            return soumettreVente(formData, 2);
+        }
+
+        return response;
+    }
+
     // Soumission du formulaire : tentative en ligne normale, bascule vers la
     // file d'attente hors-ligne uniquement en cas d'échec réseau réel (pas de
     // changement de comportement pour une soumission qui aboutit normalement).
-    const venteForm = document.getElementById('venteForm');
     venteForm.addEventListener('submit', async function (e) {
         e.preventDefault();
 
         if (cart.length === 0) {
-            alert('Votre panier de vente est vide. Veuillez ajouter au moins un produit.');
+            notifier('Votre panier de vente est vide. Veuillez ajouter au moins un produit.');
             return;
         }
 
-        const formData = new FormData(venteForm);
-
         try {
-            const response = await fetch(venteForm.action, {
-                method: 'POST',
-                body: formData,
-                credentials: 'same-origin',
-            });
+            const response = await soumettreVente(new FormData(venteForm), 1);
             window.location.href = response.url;
         } catch (networkError) {
             if (!window.OfflineVentes) {
-                alert('Connexion indisponible et la file d\'attente hors-ligne n\'a pas pu être chargée. Réessayez.');
+                notifier('Connexion indisponible et la file d\'attente hors-ligne n\'a pas pu être chargée. Réessayez.');
                 return;
             }
 

@@ -25,6 +25,11 @@ class VenteTest extends TestCase
         return User::factory()->create(['role' => 'caissier', 'active' => true, 'boutique_id' => $boutique->id]);
     }
 
+    private function gerant(Boutique $boutique): User
+    {
+        return User::factory()->create(['role' => 'gerant', 'active' => true, 'boutique_id' => $boutique->id]);
+    }
+
     private function produit(Boutique $boutique, int $stockActuel = 10): Produit
     {
         $categorie = Categorie::create([
@@ -200,5 +205,122 @@ class VenteTest extends TestCase
         $this->assertSame(7, $stockA->stock_actuel);
         $this->assertSame(10, $stockB->stock_actuel);
         $this->assertSame(1, Vente::withoutGlobalScopes()->count());
+    }
+
+    public function test_un_prix_unitaire_different_du_catalogue_est_rejete(): void
+    {
+        $boutique = $this->boutique();
+        $user = $this->caissier($boutique);
+        $produit = $this->produit($boutique);
+
+        $this->actingAs($user)->post('/ventes', [
+            'client_nom' => 'Client Test',
+            'mode_paiement' => 'espece',
+            'montant_recu' => 100,
+            'produit_ids' => [$produit->id],
+            'quantites' => [2],
+            'prix_unitaires' => [50], // prix catalogue réel : 1000
+        ])->assertSessionHas('error');
+
+        $this->assertSame(0, Vente::count());
+    }
+
+    public function test_un_montant_recu_insuffisant_est_refuse(): void
+    {
+        $boutique = $this->boutique();
+        $user = $this->caissier($boutique);
+        $produit = $this->produit($boutique);
+
+        $this->actingAs($user)->post('/ventes', [
+            'client_nom' => 'Client Test',
+            'mode_paiement' => 'espece',
+            'montant_recu' => 500,
+            'produit_ids' => [$produit->id],
+            'quantites' => [2],
+            'prix_unitaires' => [1000],
+        ])->assertSessionHas('error');
+
+        $this->assertSame(0, Vente::count());
+    }
+
+    public function test_un_gerant_peut_annuler_une_vente_et_le_stock_est_restitue(): void
+    {
+        $boutique = $this->boutique();
+        $caissier = $this->caissier($boutique);
+        $gerant = $this->gerant($boutique);
+        $produit = $this->produit($boutique, 10);
+
+        $this->actingAs($caissier)->post('/ventes', [
+            'client_nom' => 'Client Test',
+            'mode_paiement' => 'espece',
+            'montant_recu' => 3000,
+            'produit_ids' => [$produit->id],
+            'quantites' => [2],
+            'prix_unitaires' => [1000],
+        ]);
+
+        $vente = Vente::first();
+        $stockApresVente = BoutiqueProduit::withoutGlobalScopes()->where('boutique_id', $boutique->id)->where('produit_id', $produit->id)->first();
+        $this->assertSame(8, $stockApresVente->stock_actuel);
+
+        $this->actingAs($gerant)->delete("/ventes/{$vente->id}")
+            ->assertRedirect(route('ventes.index'));
+
+        $vente->refresh();
+        $this->assertSame('annulee', $vente->statut);
+        $this->assertSame(1, Vente::count(), 'la vente annulée doit toujours exister, pas être supprimée');
+
+        $stockApresAnnulation = BoutiqueProduit::withoutGlobalScopes()->where('boutique_id', $boutique->id)->where('produit_id', $produit->id)->first();
+        $this->assertSame(10, $stockApresAnnulation->stock_actuel);
+
+        $this->assertDatabaseHas('mouvements_stock', [
+            'produit_id' => $produit->id,
+            'type' => 'retour_client',
+            'quantite' => 2,
+        ]);
+    }
+
+    public function test_un_caissier_ne_peut_pas_annuler_une_vente(): void
+    {
+        $boutique = $this->boutique();
+        $caissier = $this->caissier($boutique);
+        $produit = $this->produit($boutique, 10);
+
+        $this->actingAs($caissier)->post('/ventes', [
+            'client_nom' => 'Client Test',
+            'mode_paiement' => 'espece',
+            'montant_recu' => 3000,
+            'produit_ids' => [$produit->id],
+            'quantites' => [2],
+            'prix_unitaires' => [1000],
+        ]);
+
+        $vente = Vente::first();
+
+        $this->actingAs($caissier)->delete("/ventes/{$vente->id}")->assertForbidden();
+        $this->assertSame('terminee', $vente->fresh()->statut);
+    }
+
+    public function test_une_vente_deja_annulee_ne_peut_pas_etre_annulee_a_nouveau(): void
+    {
+        $boutique = $this->boutique();
+        $gerant = $this->gerant($boutique);
+        $produit = $this->produit($boutique, 10);
+
+        $vente = Vente::create([
+            'reference' => Vente::generateReference(),
+            'boutique_id' => $boutique->id,
+            'total' => 1000,
+            'montant_recu' => 1000,
+            'monnaie' => 0,
+            'client_nom' => 'Client Test',
+            'mode_paiement' => 'espece',
+            'statut' => 'annulee',
+        ]);
+
+        $this->actingAs($gerant)->delete("/ventes/{$vente->id}")
+            ->assertRedirect(route('ventes.index'));
+
+        $this->assertDatabaseCount('mouvements_stock', 0);
     }
 }

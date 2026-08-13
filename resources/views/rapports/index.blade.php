@@ -6,6 +6,19 @@
 @section('content')
 <div class="row mt-4">
     <div class="col-12">
+        <!-- Rapports détaillés -->
+        <div class="d-flex gap-2 flex-wrap mb-4">
+            <a href="{{ route('rapports.ventes') }}" class="btn btn-outline-primary">
+                <i class="fas fa-chart-bar me-2"></i>Rapport détaillé des ventes
+            </a>
+            <a href="{{ route('rapports.stocks') }}" class="btn btn-outline-primary">
+                <i class="fas fa-boxes me-2"></i>Rapport détaillé des stocks
+            </a>
+            <a href="{{ route('rapports.performances') }}" class="btn btn-outline-primary">
+                <i class="fas fa-trophy me-2"></i>Performances & rentabilité
+            </a>
+        </div>
+
         <!-- Filtres -->
         <div class="card animate-fadeInUp mb-4">
             <div class="card-body">

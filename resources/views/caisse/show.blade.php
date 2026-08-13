@@ -48,9 +48,11 @@
                         <tr><td class="text-muted">Nombre de ventes</td><td class="fw-bold text-end"><span class="badge bg-info fs-6">{{ $caisse->nombre_ventes }}</span></td></tr>
                         <tr><td class="text-muted">Total des ventes</td><td class="fw-bold text-end fs-5">{{ number_format($caisse->total_ventes, 0, ',', ' ') }} FCFA</td></tr>
                         <tr><td class="text-muted">Fond d'ouverture</td><td class="fw-bold text-end">{{ number_format($caisse->fond_ouverture, 0, ',', ' ') }} FCFA</td></tr>
-                        <tr><td class="text-muted">Total encaissé</td><td class="fw-bold text-end">{{ number_format($caisse->totalEncaisse(), 0, ',', ' ') }} FCFA</td></tr>
+                        <tr><td class="text-muted">Espèces théoriques (fond + ventes espèces)</td><td class="fw-bold text-end">{{ number_format($caisse->fond_ouverture + $caisse->total_especes, 0, ',', ' ') }} FCFA</td></tr>
+                        <tr><td class="text-muted">Espèces réellement comptées</td><td class="fw-bold text-end">{{ number_format($caisse->montant_compte, 0, ',', ' ') }} FCFA</td></tr>
+                        <tr><td class="text-muted">Total encaissé (tous modes)</td><td class="fw-bold text-end">{{ number_format($caisse->totalEncaisse(), 0, ',', ' ') }} FCFA</td></tr>
                         <tr class="table-{{ $caisse->ecart >= 0 ? 'success' : 'danger' }}">
-                            <td class="fw-bold">Écart de caisse</td>
+                            <td class="fw-bold">Écart de caisse (espèces)</td>
                             <td class="fw-bold text-end fs-5 {{ $caisse->ecart >= 0 ? 'text-success' : 'text-danger' }}">
                                 {{ $caisse->ecart >= 0 ? '+' : '' }}{{ number_format($caisse->ecart, 0, ',', ' ') }} FCFA
                             </td>

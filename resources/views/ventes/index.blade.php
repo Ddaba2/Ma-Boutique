@@ -125,7 +125,9 @@
                                         <span class="badge bg-info">{{ $vente->modePaiementLabel() }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">{{ ucfirst($vente->statut) }}</span>
+                                        <span class="badge bg-{{ match($vente->statut) { 'terminee' => 'success', 'annulee' => 'danger', default => 'secondary' } }}">
+                                            {{ match($vente->statut) { 'terminee' => 'Terminée', 'annulee' => 'Annulée', default => ucfirst($vente->statut) } }}
+                                        </span>
                                     </td>
                                     <td>
                                         <div class="btn-group">
@@ -138,13 +140,15 @@
                                             <a href="{{ route('ventes.show', $vente) }}" class="btn btn-sm btn-outline-primary" title="Voir">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            @if(in_array(auth()->user()->role, ['gerant', 'gestionnaire']) && $vente->statut === 'terminee')
                                             <form method="POST" action="{{ route('ventes.destroy', $vente) }}" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette vente ?')">
-                                                    <i class="fas fa-trash"></i>
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Annuler la vente" onclick="return confirm('Annuler cette vente ? Le stock sera restitué et l\'opération sera tracée.')">
+                                                    <i class="fas fa-ban"></i>
                                                 </button>
                                             </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

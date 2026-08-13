@@ -7,7 +7,9 @@ use App\Models\Vente;
 use App\Models\DetailVente;
 use App\Models\BoutiqueProduit;
 use App\Models\Categorie;
+use App\Models\MouvementStock;
 use App\Support\BoutiqueContext;
+use App\Support\PdfBranding;
 use Carbon\Carbon;
 use PDF;
 
@@ -75,6 +77,9 @@ class RapportController extends Controller
 
     public function stocks(Request $request)
     {
+        $dateDebut = $request->input('date_debut', Carbon::today()->subDays(30)->format('Y-m-d'));
+        $dateFin = $request->input('date_fin', Carbon::today()->format('Y-m-d'));
+
         $stocks = BoutiqueProduit::dansBoutique(BoutiqueContext::id())
             ->with('produit.categorie')
             ->parStatutStock($request->statut_stock)
@@ -103,12 +108,24 @@ class RapportController extends Controller
             ];
         });
 
+        // Entrées de stock réelles sur la période (mouvements tracés, pas une
+        // approximation basée sur la date de création des produits).
+        $entreesStock = MouvementStock::with('produit')
+            ->where('type', 'entree')
+            ->whereBetween('date_mouvement', [$dateDebut, $dateFin])
+            ->orderBy('date_mouvement', 'desc')
+            ->get();
+
+        $totalEntrees = $entreesStock->count();
+        $quantiteTotale = $entreesStock->sum('quantite');
+
         $categories = Categorie::where('active', true)->get();
 
         return view('rapports.stocks', compact(
-            'produits', 'categories', 'totalProduits', 
+            'produits', 'categories', 'totalProduits',
             'produitsEnRupture', 'produitsStockFaible', 'produitsStockNormal',
-            'valeurStock', 'stockParCategorie'
+            'valeurStock', 'stockParCategorie',
+            'entreesStock', 'totalEntrees', 'quantiteTotale', 'dateDebut', 'dateFin'
         ));
     }
 
@@ -221,8 +238,9 @@ class RapportController extends Controller
         $totalVentes = $ventes->count();
         $chiffreAffaires = $ventes->sum('total');
 
-        $pdf = \PDF::loadView('rapports.pdf.ventes', compact(
-            'ventes', 'dateDebut', 'dateFin', 'totalVentes', 'chiffreAffaires'
+        $pdf = \PDF::loadView('rapports.pdf.ventes', array_merge(
+            compact('ventes', 'dateDebut', 'dateFin', 'totalVentes', 'chiffreAffaires'),
+            PdfBranding::forView()
         ));
 
         return $pdf->download("rapport_ventes_{$dateDebut}_au_{$dateFin}.pdf");
@@ -246,9 +264,9 @@ class RapportController extends Controller
             return $produit->stock_actuel * $produit->prix_achat;
         });
 
-        $pdf = \PDF::loadView('rapports.pdf.stocks', compact(
-            'produits', 'totalProduits', 
-            'produitsEnRupture', 'valeurStock'
+        $pdf = \PDF::loadView('rapports.pdf.stocks', array_merge(
+            compact('produits', 'totalProduits', 'produitsEnRupture', 'valeurStock'),
+            PdfBranding::forView()
         ));
 
         return $pdf->download("rapport_stocks_" . Carbon::now()->format('Y-m-d') . ".pdf");
@@ -284,7 +302,7 @@ class RapportController extends Controller
             })->count()
         ];
 
-        $pdf = PDF::loadView('rapports.pdf_complete', $data);
+        $pdf = PDF::loadView('rapports.pdf_complete', array_merge($data, PdfBranding::forView()));
         return $pdf->download("rapport_complet_{$dateDebut}_au_{$dateFin}.pdf");
     }
 }

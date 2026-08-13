@@ -54,12 +54,20 @@
                             @error('fond_ouverture')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label fw-semibold">Espèces réellement comptées en caisse (FCFA) *</label>
+                            <input type="number" name="montant_compte" class="form-control @error('montant_compte') is-invalid @enderror"
+                                   value="{{ old('montant_compte') }}" min="0" step="50" required id="montantCompte"
+                                   placeholder="Comptez les billets/pièces du tiroir">
+                            @error('montant_compte')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <small class="text-muted">Ne comptez que les espèces physiques — pas la carte ni le mobile money.</small>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Écart calculé</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-balance-scale"></i></span>
-                                <input type="text" class="form-control fw-bold" id="ecartDisplay" readonly placeholder="Entrez le fond d'ouverture">
+                                <input type="text" class="form-control fw-bold" id="ecartDisplay" readonly placeholder="Renseignez le fond et le montant compté">
                             </div>
-                            <small class="text-muted">= fond + encaissements - total ventes</small>
+                            <small class="text-muted">= espèces comptées − (fond d'ouverture + ventes en espèces)</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Notes / observations</label>
@@ -79,7 +87,7 @@
                                     <div class="fw-bold">{{ $nbVentes }}</div>
                                 </div>
                                 <div class="col">
-                                    <div class="small opacity-75">Encaissé total</div>
+                                    <div class="small opacity-75">Encaissé total (tous modes)</div>
                                     <div class="fw-bold">{{ number_format($totalEspeces + $totalCarte + $totalMobile + $totalAutre, 0, ',', ' ') }} F</div>
                                 </div>
                             </div>
@@ -101,15 +109,26 @@
 
 @section('scripts')
 <script>
-const totalVentes     = {{ $totalVentes }};
-const totalEncaisse   = {{ $totalEspeces + $totalCarte + $totalMobile + $totalAutre }};
+const totalEspeces = {{ $totalEspeces }};
 
-document.getElementById('fondOuverture').addEventListener('input', function () {
-    const fond  = parseFloat(this.value) || 0;
-    const ecart = fond + totalEncaisse - totalVentes;
-    const el    = document.getElementById('ecartDisplay');
+function recalculerEcart() {
+    const fond    = parseFloat(document.getElementById('fondOuverture').value) || 0;
+    const compte  = document.getElementById('montantCompte').value;
+    const el      = document.getElementById('ecartDisplay');
+
+    if (compte === '') {
+        el.value = '';
+        el.className = 'form-control fw-bold';
+        return;
+    }
+
+    const especesTheoriques = fond + totalEspeces;
+    const ecart = parseFloat(compte) - especesTheoriques;
     el.value    = (ecart >= 0 ? '+' : '') + ecart.toLocaleString('fr-FR') + ' FCFA';
     el.className = 'form-control fw-bold ' + (ecart >= 0 ? 'text-success' : 'text-danger');
-});
+}
+
+document.getElementById('fondOuverture').addEventListener('input', recalculerEcart);
+document.getElementById('montantCompte').addEventListener('input', recalculerEcart);
 </script>
 @endsection

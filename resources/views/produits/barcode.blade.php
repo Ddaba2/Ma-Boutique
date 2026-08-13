@@ -40,15 +40,17 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+@vite(['resources/js/barcode.js'])
 <script>
-    JsBarcode("#barcode", "{{ $produit->reference }}", {
-        format: "CODE128",
-        width: 2,
-        height: 60,
-        displayValue: true,
-        fontSize: 12,
-        margin: 10
+    document.addEventListener('DOMContentLoaded', function () {
+        JsBarcode("#barcode", "{{ $produit->reference }}", {
+            format: "CODE128",
+            width: 2,
+            height: 60,
+            displayValue: true,
+            fontSize: 12,
+            margin: 10
+        });
     });
 
     function imprimer() {

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBoutique;
+use App\Support\ReferenceSequence;
 use Illuminate\Database\Eloquent\Model;
 
 class Vente extends Model
@@ -52,8 +53,7 @@ class Vente extends Model
 
     public static function generateReference(): string
     {
-        $count = self::lockForUpdate()->count() + 1;
-        return 'VENTE' . date('Y') . str_pad($count, 5, '0', STR_PAD_LEFT);
+        return ReferenceSequence::next('ventes_' . date('Y'), 'VENTE' . date('Y'));
     }
 
     public static function libellesModePaiement(): array

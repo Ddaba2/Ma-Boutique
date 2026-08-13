@@ -1,282 +1,142 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
     <meta charset="utf-8">
-    <title>Facture - {{ $vente->reference }}</title>
-    <style>
-        @page {
-            margin: 20mm;
-            size: A4;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .header {
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .company-info {
-            display: flex;
-            justify-content: flex-start;
-            align-items: flex-start;
-        }
-        
-        .company-details h2 {
-            margin: 0 0 5px 0;
-            color: #007bff;
-            font-size: 20px;
-        }
-        
-        .company-details p {
-            margin: 3px 0;
-            font-size: 11px;
-        }
-        
-        .logo {
-            width: 80px;
-            height: 80px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 5px;
-            background: #f8f9fa;
-        }
-        
-        .invoice-info {
-            background: #f8f9fa;
-            padding: 15px;
-            position: right;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        
-        .invoice-info h3 {
-            margin: 0 0 10px 0;
-            color: #007bff;
-            font-size: 16px;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        
-        .info-item {
-            margin-bottom: 5px;
-        }
-        
-        .info-item strong {
-            color: #495057;
-            display: inline-block;
-            width: 80px;
-        }
-        
-        .products-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        
-        .products-table th {
-            background: #007bff;
-            color: white;
-            padding: 10px;
-            text-align: left;
-            font-weight: 600;
-        }
-        
-        .products-table td {
-            padding: 8px 10px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .products-table tr:nth-child(even) {
-            background: #f8f9fa;
-        }
-        
-        .total-section {
-            text-align: right;
-            margin-top: 20px;
-        }
-        
-        .total-row {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 5px;
-        }
-        
-        .total-label {
-            width: 150px;
-            text-align: right;
-            padding-right: 15px;
-            font-weight: 600;
-        }
-        
-        .total-value {
-            width: 120px;
-            text-align: right;
-            font-weight: bold;
-        }
-        
-        .grand-total {
-            background: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        
-        .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 1px solid #dee2e6;
-            text-align: center;
-            font-size: 10px;
-            color: #6c757d;
-        }
-        
-        .payment-info {
-            background: #e7f3ff;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            border-left: 4px solid #007bff;
-        }
-    </style>
+    <title>Facture {{ $vente->reference }}</title>
+    @include('pdf.partials.styles')
 </head>
 <body>
-    <div class="header">
-        <div class="company-info">
-            <div class="company-details">
-                @if($entreprise)
-                    <h2>{{ $entreprise->nom }}</h2>
-                    <p><strong>NIF:</strong> {{ $entreprise->nif }}</p>
-                    <p><strong>Adresse:</strong> {{ $entreprise->adresse }}</p>
-                    <p><strong>Téléphone:</strong> {{ $entreprise->telephone }}</p>
-                    <p><strong>Email:</strong> {{ $entreprise->email }}</p>
-                    @if($entreprise->site_web)
-                        <p><strong>Site web:</strong> {{ $entreprise->site_web }}</p>
-                    @endif
-                @else
-                    <h2>GesBoutique</h2>
-                    <p>NIF: NIF123456789</p>
-                    <p>Adresse: Bamako, Mali</p>
-                    <p>Téléphone: +223 XX XX XX XX</p>
-                    <p>Email: contact@gesboutique.com</p>
+@php
+    $b = $branding ?? \App\Support\PdfBranding::resolve();
+    $nomClient = $vente->client_nom ?? $vente->client?->nom_complet ?? 'Client comptant';
+    $telephoneClient = $vente->client_telephone ?? $vente->client?->telephone;
+    $emailClient = $vente->client_email ?? $vente->client?->email;
+    $adresseClient = $vente->client?->adresse;
+    $nbArticles = $vente->detailVentes->sum('quantite');
+@endphp
+
+<div class="page">
+    @include('pdf.partials.header', [
+        'docTitle' => 'FACTURE',
+        'docSubtitle' => 'N° ' . $vente->reference,
+    ])
+
+    <table class="info-row" width="100%">
+        <tr>
+            <td width="48%" class="info-box">
+                <h4>Facturé à</h4>
+                <div class="name">{{ $nomClient }}</div>
+                @if($telephoneClient)
+                    <div class="info-line"><span class="label">Téléphone</span> {{ $telephoneClient }}</div>
                 @endif
-            </div>
-            @if($entreprise && $entreprise->logo)
-                <img src="{{ asset('storage/' . $entreprise->logo) }}" alt="Logo" class="logo">
-            @else
-                <div class="logo" style="display: flex; align-items: center; justify-content: center; font-size: 10px; text-align: center;">
-                    LOGO
+                @if($emailClient)
+                    <div class="info-line"><span class="label">Email</span> {{ $emailClient }}</div>
+                @endif
+                <div class="address-line">
+                    <strong>Adresse :</strong>
+                    @if($adresseClient)
+                        {{ $adresseClient }}
+                    @else
+                        <span style="color:#9ca3af;">—</span>
+                    @endif
                 </div>
-            @endif
-        </div>
-    </div>
+            </td>
+            <td width="4%"></td>
+            <td width="48%" class="info-box">
+                <h4>Détails de la facture</h4>
+                <div class="info-line"><span class="label">Date</span> {{ $vente->created_at->format('d/m/Y') }}</div>
+                <div class="info-line"><span class="label">Heure</span> {{ $vente->created_at->format('H:i') }}</div>
+                <div class="info-line"><span class="label">Statut</span> {{ ucfirst($vente->statut ?? 'terminée') }}</div>
+                @if($vente->mode_paiement)
+                    <div class="info-line"><span class="label">Paiement</span> {{ $vente->modePaiementLabel() }}</div>
+                @endif
+            </td>
+        </tr>
+    </table>
 
-    <div class="invoice-info">
-        <h3>FACTURE</h3>
-        <div class="info-grid">
-            <div>
-                <div class="info-item">
-                    <strong>Numéro:</strong> {{ $vente->reference }}
-                </div>
-                <div class="info-item">
-                    <strong>Date:</strong> {{ $vente->created_at->format('d/m/Y') }}
-                </div>
-                <div class="info-item">
-                    <strong>Heure:</strong> {{ $vente->created_at->format('H:i') }}
-                </div>
-            </div>
-            <div>
-                <div class="info-item">
-                    <strong>Client:</strong> {{ $vente->client_nom ?? 'Client anonyme' }} - Téléphone: {{ $vente->client_telephone ?? 'N/A' }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    @if($vente->mode_paiement)
-        <div class="payment-info">
-            <strong>Mode de paiement:</strong> {{ $vente->modePaiementLabel() }}
-            @if($vente->montant_recu)
-                <br><strong>Montant reçu:</strong> {{ number_format($vente->montant_recu, 0, ',', ' ') }} FCFA
-            @endif
-            @if($vente->monnaie)
-                <br><strong>Monnaie:</strong> {{ number_format($vente->monnaie, 0, ',', ' ') }} FCFA
-            @endif
-        </div>
-    @endif
-
-    <table class="products-table">
+    <table class="items-table">
         <thead>
             <tr>
-                <th width="5%">#</th>
-                <th width="40%">Produit</th>
-                <th width="15%">Quantité</th>
-                <th width="20%">Prix unitaire</th>
-                <th width="20%">Total</th>
+                <th width="4%" class="center">#</th>
+                <th width="14%">Référence</th>
+                <th width="38%">Désignation</th>
+                <th width="10%" class="center">Qté</th>
+                <th width="17%" class="right">Prix unitaire</th>
+                <th width="17%" class="right">Montant</th>
             </tr>
         </thead>
         <tbody>
             @foreach($vente->detailVentes as $index => $detail)
                 <tr>
-                    <td>{{ $index + 1 }}</td>
+                    <td class="center">{{ $index + 1 }}</td>
+                    <td>{{ $detail->produit->reference ?? '—' }}</td>
                     <td>{{ $detail->produit->nom }}</td>
-                    <td>{{ $detail->quantite }}</td>
-                    <td>{{ number_format($detail->prix_unitaire, 0, ',', ' ') }} FCFA</td>
-                    <td>{{ number_format($detail->total, 0, ',', ' ') }} FCFA</td>
+                    <td class="center">{{ $detail->quantite }}</td>
+                    <td class="right">{{ number_format($detail->prix_unitaire, 0, ',', ' ') }} FCFA</td>
+                    <td class="right">{{ number_format($detail->total_ligne, 0, ',', ' ') }} FCFA</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
 
-    <div class="total-section">
-        <div class="total-row">
-            <div class="total-label">Total produits:</div>
-            <div class="total-value">{{ $vente->detailVentes->sum('quantite') }}</div>
-        </div>
-        <div class="total-row">
-            <div class="total-label">Montant total:</div>
-            <div class="total-value">{{ number_format($vente->total, 0, ',', ' ') }} FCFA</div>
-        </div>
-        
-        <div class="total-row grand-total">
-            <div class="total-label">NET À PAYER:</div>
-            <div class="total-value">{{ number_format($vente->total, 0, ',', ' ') }} FCFA</div>
-        </div>
-    </div>
+    <table class="bottom-row" width="100%">
+        <tr>
+            <td width="52%" class="payment-box">
+                <h4>Informations de règlement</h4>
+                @if($vente->mode_paiement)
+                    <div class="info-line"><span class="label">Mode</span> {{ $vente->modePaiementLabel() }}</div>
+                @endif
+                @if($vente->montant_recu)
+                    <div class="info-line"><span class="label">Reçu</span> {{ number_format($vente->montant_recu, 0, ',', ' ') }} FCFA</div>
+                @endif
+                @if($vente->monnaie && $vente->monnaie > 0)
+                    <div class="info-line"><span class="label">Monnaie</span> {{ number_format($vente->monnaie, 0, ',', ' ') }} FCFA</div>
+                @endif
+                <div class="info-line" style="margin-top:8px; color:#6b7280;">
+                    Arrêtée la présente facture à la somme de
+                    <strong style="color:#111827;">{{ number_format($vente->total, 0, ',', ' ') }} FCFA</strong>.
+                </div>
+            </td>
+            <td width="4%"></td>
+            <td width="44%" class="totals-box">
+                <table>
+                    <tr>
+                        <td class="label">Nombre d'articles</td>
+                        <td class="value">{{ $nbArticles }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Sous-total HT</td>
+                        <td class="value">{{ number_format($vente->total, 0, ',', ' ') }} FCFA</td>
+                    </tr>
+                    <tr>
+                        <td class="label">TVA</td>
+                        <td class="value">0 FCFA</td>
+                    </tr>
+                    <tr class="grand">
+                        <td class="label" style="color:#dbeafe;">NET À PAYER</td>
+                        <td class="value">{{ number_format($vente->total, 0, ',', ' ') }} FCFA</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
     @if($vente->notes)
-        <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-            <strong>Notes:</strong> {{ $vente->notes }}
+        <div class="notes-box">
+            <strong>Notes :</strong> {{ $vente->notes }}
         </div>
     @endif
 
-    <div style="margin-top: 50px; text-align: right;">
-        <p style="font-size: 11px;">Signature et cachet</p>
-    </div>
+    <table class="signature-row" width="100%">
+        <tr>
+            <td></td>
+            <td width="220">
+                <div class="signature-box">Signature &amp; cachet</div>
+            </td>
+        </tr>
+    </table>
 
-    <div class="footer">
-        <p>Merci pour votre confiance !</p>
-        <p>Cette facture est générée automatiquement par GesBoutique</p>
-        <p>Générée le: {{ now()->format('d/m/Y H:i') }}</p>
-    </div>
-
-    <script>
-        window.onload = function() {
-            window.print();
-        };
-    </script>
+    @include('pdf.partials.footer')
+</div>
 </body>
 </html>

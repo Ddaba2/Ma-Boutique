@@ -27,9 +27,6 @@
                                 <a href="{{ route('rapports.export.pdf.stocks') }}?date_debut={{ $dateDebut ?? now()->subDays(30)->format('Y-m-d') }}&date_fin={{ $dateFin ?? now()->format('Y-m-d') }}" class="btn btn-danger">
                                     <i class="fas fa-file-pdf me-2"></i>PDF
                                 </a>
-                                <a href="{{ route('rapports.export.excel.stocks') }}?date_debut={{ $dateDebut ?? now()->subDays(30)->format('Y-m-d') }}&date_fin={{ $dateFin ?? now()->format('Y-m-d') }}" class="btn btn-success">
-                                    <i class="fas fa-file-excel me-2"></i>Excel
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -197,7 +194,6 @@
                                 <th>Stock actuel</th>
                                 <th>Stock minimum</th>
                                 <th>Valeur totale</th>
-                                <th>Dernière entrée</th>
                                 <th>Statut</th>
                             </tr>
                         </thead>
@@ -233,13 +229,6 @@
                                         <td>{{ $produit->stock_min }}</td>
                                         <td class="fw-bold text-primary">{{ number_format($produit->stock_actuel * $produit->prix_achat, 0, ',', ' ') }} FCFA</td>
                                         <td>
-                                            @if($produit->derniere_entree)
-                                                {{ $produit->derniere_entree->created_at->format('d/m/Y H:i') }}
-                                            @else
-                                                <span class="text-muted">N/A</span>
-                                            @endif
-                                        </td>
-                                        <td>
                                             @if($produit->stock_actuel == 0)
                                                 <span class="badge bg-danger">Rupture</span>
                                             @elseif($produit->stock_actuel <= $produit->stock_min)
@@ -252,7 +241,7 @@
                                 @endforeach
                             @else
                                 <tr>
-                                    <td colspan="7" class="text-center py-4 text-muted">
+                                    <td colspan="6" class="text-center py-4 text-muted">
                                         <i class="fas fa-inbox fa-2x mb-2"></i>
                                         <p>Aucun produit trouvé</p>
                                     </td>

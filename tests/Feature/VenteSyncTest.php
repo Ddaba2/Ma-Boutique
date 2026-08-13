@@ -140,4 +140,24 @@ class VenteSyncTest extends TestCase
         $stock = BoutiqueProduit::withoutGlobalScopes()->where('boutique_id', $boutique->id)->where('produit_id', $produit->id)->first();
         $this->assertSame(0, $stock->stock_actuel, 'Le stock ne doit jamais devenir négatif.');
     }
+
+    public function test_une_synchronisation_avec_prix_modifie_est_rejetee(): void
+    {
+        $boutique = $this->boutique();
+        $user = $this->caissier($boutique);
+        $produit = $this->produit($boutique, 10);
+
+        $response = $this->actingAs($user)->postJson('/api/ventes/sync', [
+            'uuid_client' => 'uuid-test-prix',
+            'client_nom' => 'Client Offline',
+            'mode_paiement' => 'espece',
+            'montant_recu' => 500,
+            'lignes' => [
+                ['produit_id' => $produit->id, 'quantite' => 1, 'prix_unitaire' => 500],
+            ],
+        ]);
+
+        $response->assertStatus(422)->assertJson(['synced' => false]);
+        $this->assertNull(Vente::where('uuid_client', 'uuid-test-prix')->first());
+    }
 }

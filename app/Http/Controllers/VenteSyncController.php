@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Vente;
 use App\Services\VenteService;
 use App\Support\BoutiqueContext;
+use App\Support\ValidePrixCatalogue;
 use Illuminate\Http\Request;
 
 /**
@@ -12,8 +13,8 @@ use Illuminate\Http\Request;
  * (file d'attente IndexedDB côté navigateur, voir public/js/offline-ventes.js).
  * Distinct de VenteController::store() car le comportement en cas de stock
  * insuffisant diffère : ici on ne rejette jamais une vente déjà réalisée
- * physiquement par le caissier, on la marque en conflit pour résolution
- * manuelle (voir VenteConflitController).
+ * physiquement par le caissier, on la marque simplement en conflit
+ * (Vente::conflit_stock) pour signaler l'anomalie sans la bloquer.
  */
 class VenteSyncController extends Controller
 {
@@ -30,6 +31,13 @@ class VenteSyncController extends Controller
             'lignes.*.quantite' => 'required|integer|min:1',
             'lignes.*.prix_unitaire' => 'required|numeric|min:0',
         ]);
+
+        if (!ValidePrixCatalogue::prixConformes($data['lignes'])) {
+            return response()->json([
+                'synced' => false,
+                'message' => 'Le prix d\'un produit ne correspond pas au catalogue.',
+            ], 422);
+        }
 
         $existante = Vente::withoutGlobalScopes()->where('uuid_client', $data['uuid_client'])->first();
 

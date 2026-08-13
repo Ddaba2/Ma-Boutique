@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBoutique;
+use App\Support\ReferenceSequence;
 use Illuminate\Database\Eloquent\Model;
 
 class Commande extends Model
@@ -35,9 +36,7 @@ class Commande extends Model
 
     public static function generateReference(): string
     {
-        $prefix = 'CMD' . date('Y');
-        $count = self::whereYear('created_at', now()->year)->lockForUpdate()->count() + 1;
-        return $prefix . str_pad($count, 5, '0', STR_PAD_LEFT);
+        return ReferenceSequence::next('commandes_' . date('Y'), 'CMD' . date('Y'));
     }
 
     public function statutLabel(): string

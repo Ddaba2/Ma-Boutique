@@ -13,19 +13,22 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Nom complet *</label>
-                            <input type="text" name="name" class="form-control" value="{{ old('name', $utilisateur->name) }}" required>
+                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $utilisateur->name) }}" required>
+                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Email *</label>
-                            <input type="email" name="email" class="form-control" value="{{ old('email', $utilisateur->email) }}" required>
+                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $utilisateur->email) }}" required>
+                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Rôle *</label>
-                            <select name="role" class="form-select" required>
+                            <select name="role" class="form-select @error('role') is-invalid @enderror" required>
                                 <option value="caissier" {{ old('role', $utilisateur->role) === 'caissier' ? 'selected' : '' }}>Caissier</option>
                                 <option value="gestionnaire" {{ old('role', $utilisateur->role) === 'gestionnaire' ? 'selected' : '' }}>Gestionnaire</option>
                                 <option value="gerant" {{ old('role', $utilisateur->role) === 'gerant' ? 'selected' : '' }}>Gérant</option>
                             </select>
+                            @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Statut</label>
@@ -36,17 +39,19 @@
                         </div>
                         <div class="col-12" id="champ-boutique">
                             <label class="form-label fw-semibold">Boutique *</label>
-                            <select name="boutique_id" class="form-select">
+                            <select name="boutique_id" class="form-select @error('boutique_id') is-invalid @enderror">
                                 @foreach($boutiques as $boutique)
                                     <option value="{{ $boutique->id }}" {{ (int) old('boutique_id', $utilisateur->boutique_id) === $boutique->id ? 'selected' : '' }}>{{ $boutique->nom }}</option>
                                 @endforeach
                             </select>
                             <small class="text-muted">Non applicable pour un gérant, qui supervise toutes les boutiques.</small>
+                            @error('boutique_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-12"><hr><p class="text-muted small">Laissez vide pour ne pas changer le mot de passe</p></div>
+                        <div class="col-12"><hr><p class="text-muted small mb-0">Laissez vide pour ne pas changer le mot de passe</p></div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Nouveau mot de passe</label>
-                            <input type="password" name="password" class="form-control" minlength="6">
+                            <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" minlength="6">
+                            @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Confirmer</label>
@@ -55,7 +60,7 @@
                     </div>
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-warning"><i class="fas fa-save me-2"></i>Mettre à jour</button>
-                        <a href="{{ route('utilisateurs.index') }}" class="btn btn-outline-secondary">Annuler</a>
+                        <a href="{{ route('parametres.index') }}" class="btn btn-outline-secondary">Annuler</a>
                     </div>
                 </form>
             </div>

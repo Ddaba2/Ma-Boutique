@@ -30,9 +30,6 @@
                                 <a href="{{ route('rapports.export.pdf.ventes') }}?date_debut={{ $dateDebut ?? now()->subDays(30)->format('Y-m-d') }}&date_fin={{ $dateFin ?? now()->format('Y-m-d') }}" class="btn btn-danger">
                                     <i class="fas fa-file-pdf me-2"></i>PDF
                                 </a>
-                                <a href="{{ route('rapports.export.excel.ventes') }}?date_debut={{ $dateDebut ?? now()->subDays(30)->format('Y-m-d') }}&date_fin={{ $dateFin ?? now()->format('Y-m-d') }}" class="btn btn-success">
-                                    <i class="fas fa-file-excel me-2"></i>Excel
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -107,7 +104,7 @@
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
                             <h6 class="text-muted mb-2 fw-semibold">Produits vendus</h6>
-                            <h2 class="mb-0 fw-bold">{{ $totalProduitsVendus ?? 0 }}</h2>
+                            <h2 class="mb-0 fw-bold">{{ $produitsVendus ?? 0 }}</h2>
                             <small class="text-info">
                                 <i class="fas fa-box me-1"></i>
                                 Unités

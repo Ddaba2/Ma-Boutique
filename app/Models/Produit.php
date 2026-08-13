@@ -2,10 +2,16 @@
 
 namespace App\Models;
 
+use App\Support\ReferenceSequence;
 use Illuminate\Database\Eloquent\Model;
 
 class Produit extends Model
 {
+    // stock_actuel/stock_min/stock_max ne servent qu'à amorcer la première
+    // ligne BoutiqueProduit à la création (voir ProduitController::store()) :
+    // ils ne sont plus mis à jour ensuite. Le stock réel, par boutique, vit
+    // uniquement dans BoutiqueProduit — ne jamais lire ces colonnes pour
+    // afficher ou calculer un stock courant.
     protected $fillable = [
         'reference',
         'nom',
@@ -50,57 +56,13 @@ class Produit extends Model
         return $this->boutiqueProduits()->dansBoutique($boutiqueId)->first();
     }
 
-    public function estEnStockFaible()
-    {
-        return $this->stock_actuel <= $this->stock_min;
-    }
-
     public function benefice()
     {
         return $this->prix_vente - $this->prix_achat;
     }
 
-    /**
-     * 'rupture' | 'faible' | 'normal' — logique unique utilisée partout
-     * au lieu d'être réécrite dans chaque contrôleur/vue.
-     */
-    public function statutStock(): string
-    {
-        if ($this->stock_actuel == 0) {
-            return 'rupture';
-        }
-
-        return $this->stock_actuel <= $this->stock_min ? 'faible' : 'normal';
-    }
-
-    public function scopeEnRupture($query)
-    {
-        return $query->where('stock_actuel', 0);
-    }
-
-    public function scopeStockFaible($query)
-    {
-        return $query->whereColumn('stock_actuel', '<=', 'stock_min')->where('stock_actuel', '>', 0);
-    }
-
-    public function scopeStockNormal($query)
-    {
-        return $query->whereColumn('stock_actuel', '>', 'stock_min');
-    }
-
-    public function scopeParStatutStock($query, ?string $statut)
-    {
-        return match ($statut) {
-            'rupture' => $query->enRupture(),
-            'faible' => $query->stockFaible(),
-            'normal' => $query->stockNormal(),
-            default => $query,
-        };
-    }
-
     public static function generateReference(): string
     {
-        $count = self::lockForUpdate()->count() + 1;
-        return 'PROD' . str_pad($count, 6, '0', STR_PAD_LEFT);
+        return ReferenceSequence::next('produits', 'PROD', 6);
     }
 }

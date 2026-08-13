@@ -20,7 +20,16 @@ class AuthenticateMiddleware
             return redirect()->route('login')
                 ->with('error', 'Vous devez vous connecter pour accéder à cette page.');
         }
-        
+
+        if (!Auth::user()->active) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')
+                ->with('error', 'Votre compte est désactivé.');
+        }
+
         return $next($request);
     }
 }

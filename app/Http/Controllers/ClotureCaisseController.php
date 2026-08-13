@@ -54,10 +54,12 @@ class ClotureCaisseController extends Controller
             'date' => [
                 'required',
                 'date',
+                'before_or_equal:today',
                 Rule::unique('clotures_caisse', 'date')->where('boutique_id', $boutiqueId),
             ],
-            'fond_ouverture' => 'required|numeric|min:0',
-            'notes'          => 'nullable|string',
+            'fond_ouverture'  => 'required|numeric|min:0',
+            'montant_compte'  => 'required|numeric|min:0',
+            'notes'           => 'nullable|string',
         ]);
 
         $today = $request->date;
@@ -71,22 +73,29 @@ class ClotureCaisseController extends Controller
         $nbVentes     = $ventesJour->count();
 
         $fondOuverture  = $request->fond_ouverture;
-        $totalEncaisse  = $totalEspeces + $totalCarte + $totalMobile + $totalAutre;
-        $ecart          = ($fondOuverture + $totalEncaisse) - $totalVentes;
+        $montantCompte  = $request->montant_compte;
+
+        // L'écart de caisse ne concerne que les espèces réellement présentes
+        // dans le tiroir : carte et mobile money ne transitent jamais par la
+        // caisse physique, donc seul le comptage espèces face au théorique
+        // (fond d'ouverture + ventes en espèces) a un sens ici.
+        $especesTheoriques = $fondOuverture + $totalEspeces;
+        $ecart             = $montantCompte - $especesTheoriques;
 
         $cloture = ClotureCaisse::create([
-            'date'           => $today,
-            'fond_ouverture' => $fondOuverture,
-            'total_especes'  => $totalEspeces,
-            'total_carte'    => $totalCarte,
-            'total_mobile'   => $totalMobile,
-            'total_autre'    => $totalAutre,
-            'total_ventes'   => $totalVentes,
-            'nombre_ventes'  => $nbVentes,
-            'ecart'          => $ecart,
-            'notes'          => $request->notes,
-            'statut'         => 'clos',
-            'user_id'        => Auth::id(),
+            'date'            => $today,
+            'fond_ouverture'  => $fondOuverture,
+            'montant_compte'  => $montantCompte,
+            'total_especes'   => $totalEspeces,
+            'total_carte'     => $totalCarte,
+            'total_mobile'    => $totalMobile,
+            'total_autre'     => $totalAutre,
+            'total_ventes'    => $totalVentes,
+            'nombre_ventes'   => $nbVentes,
+            'ecart'           => $ecart,
+            'notes'           => $request->notes,
+            'statut'          => 'clos',
+            'user_id'         => Auth::id(),
         ]);
 
         return redirect()->route('caisse.show', $cloture)

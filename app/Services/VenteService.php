@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\MontantInsuffisantException;
 use App\Exceptions\StockInsuffisantException;
 use App\Models\BoutiqueProduit;
 use App\Models\DetailVente;
@@ -27,9 +28,11 @@ class VenteService
      *   lignes: array<int, array{produit_id: int, quantite: int, prix_unitaire: float}>,
      * } $data
      * @param bool $tolererConflitStock Si true, la vente est créée même si le
-     *   stock est insuffisant (cas d'une synchronisation hors-ligne tardive),
-     *   et marquée conflit_stock=true pour résolution manuelle plutôt que
-     *   d'être rejetée.
+     *   stock est insuffisant ou si le montant reçu ne couvre pas le total
+     *   (cas d'une synchronisation hors-ligne tardive : la vente a déjà eu
+     *   lieu physiquement, la rejeter ferait perdre la donnée), et marquée
+     *   conflit_stock=true pour résolution manuelle plutôt que d'être rejetée.
+     *   En flux caisse synchrone, ces deux anomalies sont bloquantes.
      */
     public function creerVente(array $data, int $boutiqueId, bool $tolererConflitStock = false): Vente
     {
@@ -39,7 +42,13 @@ class VenteService
             $conflit = false;
             $notesConflit = [];
 
-            foreach ($data['lignes'] as $ligne) {
+            // Verrouiller les lignes de stock dans un ordre stable (par
+            // produit_id) : deux ventes concurrentes contenant les mêmes
+            // produits mais saisis dans un ordre différent ne peuvent alors
+            // jamais se verrouiller en sens inverse et provoquer un deadlock.
+            $lignes = collect($data['lignes'])->sortBy('produit_id')->values()->all();
+
+            foreach ($lignes as $ligne) {
                 $produit = Produit::findOrFail($ligne['produit_id']);
                 $qty = (int) $ligne['quantite'];
                 $prixUnitaire = (float) $ligne['prix_unitaire'];
@@ -71,6 +80,15 @@ class VenteService
             }
 
             $montantRecu = (float) $data['montant_recu'];
+
+            if ($montantRecu < $total) {
+                if (!$tolererConflitStock) {
+                    throw new MontantInsuffisantException($montantRecu, $total);
+                }
+                $conflit = true;
+                $notesConflit[] = "Montant reçu ({$montantRecu}) inférieur au total ({$total})";
+            }
+
             $reference = Vente::generateReference();
 
             $vente = Vente::create([

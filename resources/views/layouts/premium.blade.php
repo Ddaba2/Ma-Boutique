@@ -15,9 +15,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GesBoutique">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    @vite(['resources/css/vendor.css', 'resources/js/vendor.js'])
 
     <style>
         :root {
@@ -43,56 +41,113 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             min-height: 100vh;
             line-height: 1.6;
+            overflow: hidden;
+        }
+
+        .app-wrapper {
+            min-height: 100vh;
         }
 
         /* Sidebar */
         .sidebar {
-            min-height: 100vh;
-            background: var(--gradient-dark);
-            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
-            position: relative;
-            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 240px;
+            height: 100vh;
+            background: #0f172a;
+            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.35);
+            overflow-x: hidden;
+            overflow-y: auto;
+            z-index: 1030;
+            display: flex;
+            flex-direction: column;
         }
-        .sidebar::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-            pointer-events: none;
+        .sidebar-brand {
+            padding: 1.25rem 1rem 1rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            text-align: center;
+        }
+        .sidebar-logo-frame {
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 0.85rem;
+            border-radius: 18px;
+            background: #fff;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+        .sidebar-logo-frame img {
+            max-width: 78px;
+            max-height: 78px;
+            object-fit: contain;
+        }
+        .sidebar-logo-placeholder {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+        .sidebar-brand-name {
+            color: #f8fafc;
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: -0.01em;
+            margin: 0;
+            line-height: 1.2;
+        }
+        .sidebar-brand-meta {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            margin-top: 0.35rem;
+        }
+        .sidebar-nav {
+            flex: 1;
+            padding: 0.75rem 0 1rem;
         }
         .sidebar .nav-link {
-            color: #d1d5db;
-            border-radius: 12px;
-            margin: 4px 8px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #cbd5e1;
+            border-radius: 10px;
+            margin: 3px 10px;
+            transition: background 0.2s ease, color 0.2s ease;
             position: relative;
-            overflow: hidden;
             font-weight: 500;
-            padding: 10px 16px;
+            padding: 10px 14px;
             font-size: 0.875rem;
         }
-        .sidebar .nav-link::before {
-            content: '';
-            position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: var(--gradient-primary);
-            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 0;
+        .sidebar .nav-link:hover {
+            background: rgba(148, 163, 184, 0.12);
+            color: #fff;
         }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            background: transparent; color: white; transform: translateX(4px);
+        .sidebar .nav-link.active {
+            background: #2563eb;
+            color: #fff;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
         }
-        .sidebar .nav-link:hover::before, .sidebar .nav-link.active::before { left: 0; }
-        .sidebar .nav-link i, .sidebar .nav-link span { position: relative; z-index: 1; }
+        .sidebar .nav-link i {
+            width: 1.25rem;
+            text-align: center;
+        }
         .sidebar-section-title {
-            color: #6b7280;
-            font-size: 0.7rem;
+            color: #64748b;
+            font-size: 0.68rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            padding: 8px 24px 4px;
+            letter-spacing: 0.12em;
+            padding: 12px 24px 4px;
+        }
+        .sidebar-footer {
+            padding: 0.75rem 1rem 1.25rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.15);
         }
 
         /* Stat Cards */
@@ -116,6 +171,17 @@
             background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             padding: 1rem 0; border-bottom: 1px solid rgba(0,0,0,0.05);
             position: sticky; top: 0; z-index: 100;
+        }
+        .main-header h2 { color: var(--dark-color); }
+        .main-header .btn-link { color: var(--dark-color); text-decoration: none; }
+        .main-header .btn-link:hover { color: var(--primary-color); }
+
+        /* Zone principale scrollable */
+        .main-content {
+            margin-left: 240px;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         /* Buttons */
@@ -158,7 +224,39 @@
         /* Cards */
         .card { border: none; border-radius: 16px; box-shadow: var(--shadow-md); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; }
         .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-xl); }
-        .card-header { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-bottom: 1px solid rgba(0,0,0,0.05); font-weight: 600; }
+        .card-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .card-header.bg-primary,
+        .card-header.bg-success,
+        .card-header.bg-info,
+        .card-header.bg-warning,
+        .card-header.bg-danger,
+        .card-header.bg-dark {
+            background: var(--primary-color) !important;
+            color: #fff !important;
+            border-bottom: none;
+        }
+        .card-header.bg-primary { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important; }
+        .card-header.bg-success { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important; }
+        .card-header.bg-info { background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important; }
+        .card-header.bg-warning { background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important; color: #fff !important; }
+        .card-header.bg-danger { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important; }
+        .card-header.bg-dark { background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important; }
+        .card-header.bg-primary .card-title,
+        .card-header.bg-success .card-title,
+        .card-header.bg-info .card-title,
+        .card-header.bg-warning .card-title,
+        .card-header.bg-danger .card-title,
+        .card-header.bg-dark .card-title,
+        .card-header.bg-primary h5,
+        .card-header.bg-success h5,
+        .card-header.text-white {
+            color: #fff !important;
+        }
 
         /* Alerts */
         .alert { border: none; border-radius: 12px; padding: 14px 18px; font-weight: 500; box-shadow: var(--shadow-sm); }
@@ -167,11 +265,10 @@
         .alert-warning { background: linear-gradient(135deg, #fffbeb, #fef3c7); color: #92400e; border-left: 4px solid #f59e0b; }
         .alert-info    { background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #1e40af; border-left: 4px solid #3b82f6; }
 
-        /* Brand */
+        /* Brand (legacy text mark) */
         .brand-logo {
-            font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 1.3rem;
-            background: var(--gradient-primary); -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent; background-clip: text;
+            font-weight: 700; font-size: 1.3rem;
+            color: #f8fafc;
         }
 
         /* Notification Bell */
@@ -212,9 +309,13 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .sidebar { position: fixed; left: -280px; top: 0; height: 100vh; z-index: 1000; transition: left 0.3s ease; }
+            .sidebar {
+                width: 280px;
+                left: -280px;
+                transition: left 0.3s ease;
+            }
             .sidebar.show { left: 0; }
-            .main-content { margin-left: 0 !important; }
+            .main-content { margin-left: 0; }
         }
 
         /* Scrollbar */
@@ -224,43 +325,36 @@
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse" id="sidebarMenu">
-                <div class="position-sticky pt-3">
-                    <div class="text-center mb-3 px-3">
-                        <div class="brand-logo mb-1">
-                            <i class="fas fa-store me-2"></i>GesBoutique
-                        </div>
-                        <small class="text-muted d-block">{{ auth()->user()->name ?? '' }}</small>
-                        @php $role = auth()->user()->role ?? 'caissier'; @endphp
-                        <span class="badge role-badge-{{ $role }} mt-1">
-                            {{ match($role) { 'gerant' => 'Gérant', 'gestionnaire' => 'Gestionnaire', default => 'Caissier' } }}
-                        </span>
-
-                        @php $boutiqueActuelle = \App\Support\BoutiqueContext::boutique(); @endphp
-                        <div class="mt-2">
-                            @if($role === 'gerant')
-                                @php $boutiquesDisponibles = \App\Models\Boutique::where('active', true)->orderBy('nom')->get(); @endphp
-                                @if($boutiquesDisponibles->count() > 1)
-                                    <form method="POST" action="{{ route('boutiques.switch') }}">
-                                        @csrf
-                                        <select name="boutique_id" class="form-select form-select-sm" onchange="this.form.submit()" style="font-size:0.75rem;">
-                                            @foreach($boutiquesDisponibles as $b)
-                                                <option value="{{ $b->id }}" {{ $boutiqueActuelle?->id === $b->id ? 'selected' : '' }}>{{ $b->nom }}</option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                @elseif($boutiqueActuelle)
-                                    <span class="small text-muted"><i class="fas fa-store me-1"></i>{{ $boutiqueActuelle->nom }}</span>
-                                @endif
-                            @elseif($boutiqueActuelle)
-                                <span class="small text-muted"><i class="fas fa-store me-1"></i>{{ $boutiqueActuelle->nom }}</span>
-                            @endif
-                        </div>
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <nav class="sidebar collapse d-md-block" id="sidebarMenu">
+            @php
+                $branding = \App\Support\PdfBranding::resolve();
+                $logoUrl = \App\Support\PdfBranding::logoUrl();
+                $role = auth()->user()->role ?? 'caissier';
+                $boutiqueActuelle = \App\Support\BoutiqueContext::boutique();
+            @endphp
+            <div class="sidebar-brand">
+                <div class="sidebar-logo-frame" title="Remplacez public/logo-client.png par le logo client">
+                    @if($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="Logo {{ $branding['nom'] }}">
+                    @else
+                        <span class="sidebar-logo-placeholder">Logo</span>
+                    @endif
+                </div>
+                <p class="sidebar-brand-name">{{ $branding['nom'] }}</p>
+                <div class="sidebar-brand-meta">{{ auth()->user()->name ?? '' }}</div>
+                <span class="badge role-badge-{{ $role }} mt-2">
+                    {{ match($role) { 'gerant' => 'Gérant', 'gestionnaire' => 'Gestionnaire', default => 'Caissier' } }}
+                </span>
+                @if($boutiqueActuelle)
+                    <div class="sidebar-brand-meta mt-2">
+                        <i class="fas fa-store me-1"></i>{{ $boutiqueActuelle->nom }}
                     </div>
+                @endif
+            </div>
 
+            <div class="sidebar-nav">
                     <ul class="nav flex-column">
                         {{-- PRINCIPAL --}}
                         <div class="sidebar-section-title">Principal</div>
@@ -274,13 +368,6 @@
                                 <i class="fas fa-shopping-cart me-2"></i><span>Ventes</span>
                             </a>
                         </li>
-                        @if(in_array($role, ['gerant', 'gestionnaire']))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('ventes.conflits*') ? 'active' : '' }}" href="{{ route('ventes.conflits') }}">
-                                <i class="fas fa-triangle-exclamation me-2"></i><span>Ventes en conflit</span>
-                            </a>
-                        </li>
-                        @endif
 
                         {{-- INVENTAIRE --}}
                         <div class="sidebar-section-title mt-2">Inventaire</div>
@@ -297,47 +384,35 @@
                                 <i class="fas fa-chart-bar me-2"></i><span>Rapports</span>
                             </a>
                         </li>
-
-                        @if($role === 'gerant')
-                        {{-- ADMINISTRATION --}}
-                        <div class="sidebar-section-title mt-2">Administration</div>
+                        @if(auth()->user()->role === 'gerant')
+                        {{-- SYSTÈME --}}
+                        <div class="sidebar-section-title mt-2">Système</div>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('boutiques.*') ? 'active' : '' }}" href="{{ route('boutiques.index') }}">
-                                <i class="fas fa-store me-2"></i><span>Boutiques</span>
+                            <a class="nav-link {{ request()->routeIs('caisse.*') ? 'active' : '' }}" href="{{ route('caisse.index') }}">
+                                <i class="fas fa-cash-register me-2"></i><span>Clôture de caisse</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('utilisateurs.*') ? 'active' : '' }}" href="{{ route('utilisateurs.index') }}">
-                                <i class="fas fa-user-cog me-2"></i><span>Utilisateurs</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('sauvegardes.*') ? 'active' : '' }}" href="{{ route('sauvegardes.index') }}">
-                                <i class="fas fa-database me-2"></i><span>Sauvegardes</span>
+                            <a class="nav-link {{ request()->routeIs('parametres.*', 'utilisateurs.*') ? 'active' : '' }}" href="{{ route('parametres.index') }}">
+                                <i class="fas fa-cog me-2"></i><span>Paramètres</span>
                             </a>
                         </li>
                         @endif
                     </ul>
+            </div>
 
-                    <hr class="text-muted my-3">
+            <div class="sidebar-footer">
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                        <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                    </button>
+                </form>
+            </div>
+        </nav>
 
-                    <div class="text-center px-3 pb-3">
-                        <div class="bg-dark bg-opacity-25 rounded-3 p-2 mb-2">
-                            <div class="small text-muted">Mode Local · XAMPP</div>
-                            <div class="small fw-bold text-white">Version 2.0.0</div>
-                        </div>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
-                                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </nav>
-
-            <!-- Main content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+        <!-- Main content -->
+        <main class="px-md-4 main-content">
                 <!-- Header -->
                 <div class="main-header">
                     <div class="d-flex justify-content-between align-items-center px-2">
@@ -346,7 +421,7 @@
                                 <i class="fas fa-bars fa-lg"></i>
                             </button>
                             <div>
-                                <h2 class="mb-0 fw-bold fs-4">@yield('title', 'Tableau de bord')</h2>
+                                <h2 class="mb-0 fw-bold fs-4 text-dark">@yield('title', 'Tableau de bord')</h2>
                                 <p class="text-muted mb-0 small">@yield('subtitle', 'Gestion de boutique professionnelle')</p>
                             </div>
                         </div>
@@ -385,22 +460,6 @@
                                 <a href="{{ route('categories.create') }}" class="btn btn-primary btn-sm">
                                     <i class="fas fa-plus me-1"></i>Nouvelle catégorie
                                 </a>
-                            @elseif(request()->routeIs('clients.*') && !request()->routeIs('clients.show') && !request()->routeIs('clients.create'))
-                                <a href="{{ route('clients.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus me-1"></i>Nouveau client
-                                </a>
-                            @elseif(request()->routeIs('fournisseurs.index'))
-                                <a href="{{ route('fournisseurs.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus me-1"></i>Nouveau fournisseur
-                                </a>
-                            @elseif(request()->routeIs('commandes.index'))
-                                <a href="{{ route('commandes.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus me-1"></i>Nouvelle commande
-                                </a>
-                            @elseif(request()->routeIs('utilisateurs.index'))
-                                <a href="{{ route('utilisateurs.create') }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus me-1"></i>Nouvel utilisateur
-                                </a>
                             @endif
                         </div>
                     </div>
@@ -418,12 +477,10 @@
 
                 <!-- Page Content -->
                 @yield('content')
-            </main>
-        </div>
+        </main>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+    <script src="{{ asset('js/escape-html.js') }}"></script>
     <script>
         function toggleSidebar() {
             document.getElementById('sidebarMenu').classList.toggle('show');
@@ -459,8 +516,8 @@
                                 </span>
                             </div>
                             <div class="flex-grow-1">
-                                <div class="fw-semibold small">${p.nom}</div>
-                                <div class="text-muted" style="font-size:0.75rem">${p.reference} · Stock: ${p.stock_actuel} / min: ${p.stock_min}</div>
+                                <div class="fw-semibold small">${escapeHtml(p.nom)}</div>
+                                <div class="text-muted" style="font-size:0.75rem">${escapeHtml(p.reference)} · Stock: ${p.stock_actuel} / min: ${p.stock_min}</div>
                             </div>
                         </div>`;
                 });
