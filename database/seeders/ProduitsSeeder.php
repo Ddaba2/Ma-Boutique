@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Produit;
-use App\Models\Categorie;
 use App\Models\Boutique;
 use App\Models\BoutiqueProduit;
+use App\Models\Categorie;
+use App\Models\Produit;
+use Illuminate\Database\Seeder;
 
 class ProduitsSeeder extends Seeder
 {
@@ -44,7 +44,7 @@ class ProduitsSeeder extends Seeder
             // Hygiène
             ['nom' => 'Shampoing 300ml', 'prix_achat' => 2000, 'prix_vente' => 3500, 'stock_actuel' => 15, 'stock_min' => 6, 'categorie' => 'Hygiène'],
             ['nom' => 'Dentifrice', 'prix_achat' => 800, 'prix_vente' => 1500, 'stock_actuel' => 20, 'stock_min' => 8, 'categorie' => 'Hygiène'],
-            ['nom' => 'Déodorant', 'prix_achat' => 1500, 'prix_vente' => 2800, 'stock_actuel' => 12, 'stock_min' => 5, 'categorie' => 'Hygiène']
+            ['nom' => 'Déodorant', 'prix_achat' => 1500, 'prix_vente' => 2800, 'stock_actuel' => 12, 'stock_min' => 5, 'categorie' => 'Hygiène'],
         ];
 
         foreach ($produits as $index => $produitData) {
@@ -52,7 +52,7 @@ class ProduitsSeeder extends Seeder
             $stockMax = $produitData['stock_actuel'] * 3;
 
             $produit = Produit::firstOrCreate(
-                ['reference' => 'PROD' . str_pad($index + 1, 6, '0', STR_PAD_LEFT)],
+                ['reference' => 'PROD'.str_pad($index + 1, 6, '0', STR_PAD_LEFT)],
                 [
                     'nom' => $produitData['nom'],
                     'description' => 'Produit de qualité supérieure',
@@ -62,11 +62,11 @@ class ProduitsSeeder extends Seeder
                     'stock_min' => $produitData['stock_min'],
                     'stock_max' => $stockMax,
                     'categorie_id' => $categorie->id,
-                    'active' => true
+                    'active' => true,
                 ]
             );
 
-            if ($boutiquePrincipale && !BoutiqueProduit::where('boutique_id', $boutiquePrincipale->id)->where('produit_id', $produit->id)->exists()) {
+            if ($boutiquePrincipale && ! BoutiqueProduit::where('boutique_id', $boutiquePrincipale->id)->where('produit_id', $produit->id)->exists()) {
                 BoutiqueProduit::create([
                     'boutique_id' => $boutiquePrincipale->id,
                     'produit_id' => $produit->id,

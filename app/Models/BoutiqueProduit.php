@@ -58,7 +58,7 @@ class BoutiqueProduit extends Model
             'updated_at' => $maintenant,
         ])->all();
 
-        if (!empty($lignes)) {
+        if (! empty($lignes)) {
             static::insert($lignes);
         }
     }
@@ -72,6 +72,7 @@ class BoutiqueProduit extends Model
     {
         return $stocks->map(function (self $stock) {
             $produit = $stock->produit;
+
             return (object) [
                 'id' => $produit->id,
                 'nom' => $produit->nom,

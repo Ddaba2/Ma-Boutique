@@ -1,8 +1,10 @@
 <?php
+
 namespace Tests\Feature;
 
 use App\Models\Boutique;
 use App\Models\Categorie;
+use App\Models\Produit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -14,6 +16,7 @@ class CategorieTest extends TestCase
     private function gerant(): User
     {
         $boutique = Boutique::create(['nom' => 'Boutique test', 'active' => true]);
+
         return User::factory()->create(['role' => 'gerant', 'active' => true, 'boutique_id' => $boutique->id]);
     }
 
@@ -63,8 +66,8 @@ class CategorieTest extends TestCase
         $user = $this->gerant();
         $categorie = Categorie::create(['nom' => 'Boissons', 'active' => true]);
 
-        \App\Models\Produit::create([
-            'reference' => \App\Models\Produit::generateReference(),
+        Produit::create([
+            'reference' => Produit::generateReference(),
             'nom' => 'Coca',
             'prix_achat' => 100,
             'prix_vente' => 200,

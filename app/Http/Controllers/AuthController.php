@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Support\BoutiqueContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -28,7 +29,7 @@ class AuthController extends Controller
 
         // Message identique pour compte inconnu, mot de passe incorrect ou compte
         // désactivé (évite l'énumération de comptes).
-        if (!$user || !$user->active || !Hash::check($credentials['password'], $user->password)) {
+        if (! $user || ! $user->active || ! Hash::check($credentials['password'], $user->password)) {
             return back()->withErrors([
                 'username' => 'Les identifiants fournis ne correspondent pas.',
             ])->onlyInput('username');
@@ -46,7 +47,7 @@ class AuthController extends Controller
         $user = Auth::user();
 
         if ($user->boutique_id) {
-            \App\Support\BoutiqueContext::definir($user->boutique_id);
+            BoutiqueContext::definir($user->boutique_id);
         } else {
             session()->forget('boutique_id');
         }

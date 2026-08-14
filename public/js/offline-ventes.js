@@ -199,12 +199,71 @@ window.OfflineVentes = (function () {
         });
     }
 
-    function synchroniser() {
-        window.OfflineVentes.syncAll().then(rafraichirBadge);
+    // Indicateur en ligne/hors ligne dans la barre du haut : utile en caisse
+    // pour comprendre pourquoi une vente vient d'être mise en file d'attente
+    // au lieu d'être enregistrée directement.
+    function rafraichirConnectivite() {
+        const badge = document.getElementById('connectivite-indicateur');
+        const label = document.getElementById('connectivite-label');
+        if (!badge || !label) return;
+        const enLigne = navigator.onLine;
+        badge.classList.remove('text-bg-success', 'text-bg-secondary', 'text-bg-danger');
+        badge.classList.add(enLigne ? 'text-bg-success' : 'text-bg-danger');
+        label.textContent = enLigne ? 'En ligne' : 'Hors ligne';
     }
 
-    window.addEventListener('online', synchroniser);
+    // Affiche le résultat d'une synchronisation (succès, conflits, session
+    // expirée) : sans ça, une synchronisation en tâche de fond ne donne aucun
+    // retour visible au caissier au-delà du badge de comptage.
+    function afficherResultatSync(resultat) {
+        const zone = document.getElementById('offline-sync-alerte');
+        if (!zone || !resultat) return;
+
+        let message = null;
+        let type = 'success';
+
+        if (resultat.sessionExpiree) {
+            message = "Des ventes hors ligne attendent d'être synchronisées, mais votre session a expiré. Reconnectez-vous pour les envoyer.";
+            type = 'warning';
+        } else if (resultat.synchronisees > 0) {
+            message = resultat.synchronisees + ' vente(s) hors ligne synchronisée(s) avec succès.';
+            if (resultat.conflits > 0) {
+                message += ' ' + resultat.conflits + ' en conflit de stock à vérifier.';
+                type = 'warning';
+            }
+        }
+
+        if (!message) return;
+
+        const div = document.createElement('div');
+        div.className = 'alert alert-' + type + ' alert-dismissible fade show mt-3 animate-fadeInUp';
+        div.setAttribute('role', 'alert');
+        div.textContent = message;
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('data-bs-dismiss', 'alert');
+        div.appendChild(closeBtn);
+
+        zone.appendChild(div);
+    }
+
+    function synchroniser() {
+        window.OfflineVentes.syncAll().then((resultat) => {
+            rafraichirBadge();
+            afficherResultatSync(resultat);
+        });
+    }
+
+    window.addEventListener('online', () => {
+        rafraichirConnectivite();
+        synchroniser();
+    });
+    window.addEventListener('offline', rafraichirConnectivite);
+
     document.addEventListener('DOMContentLoaded', () => {
+        rafraichirConnectivite();
         rafraichirBadge();
         synchroniser();
     });
@@ -217,5 +276,5 @@ window.OfflineVentes = (function () {
         });
     }
 
-    window.OfflineVentesUI = { rafraichirBadge, synchroniser };
+    window.OfflineVentesUI = { rafraichirBadge, rafraichirConnectivite, synchroniser };
 })();

@@ -16,12 +16,12 @@ class AuthenticateMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('login')
                 ->with('error', 'Vous devez vous connecter pour accéder à cette page.');
         }
 
-        if (!Auth::user()->active) {
+        if (! Auth::user()->active) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

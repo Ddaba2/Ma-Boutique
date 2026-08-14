@@ -19,12 +19,12 @@ class SauvegardeService
      */
     public function lister(): array
     {
-        $fichiers = glob($this->repertoire() . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+        $fichiers = glob($this->repertoire().DIRECTORY_SEPARATOR.'*.sql') ?: [];
         rsort($fichiers); // le nom contient un horodatage : tri alphabétique = tri chronologique
 
         return array_map(fn (string $chemin) => [
-            'nom'       => basename($chemin),
-            'date'      => Carbon::createFromTimestamp(filemtime($chemin)),
+            'nom' => basename($chemin),
+            'date' => Carbon::createFromTimestamp(filemtime($chemin)),
             'taille_ko' => round(filesize($chemin) / 1024, 1),
         ], $fichiers);
     }
@@ -42,22 +42,22 @@ class SauvegardeService
         $this->assurerRepertoire();
 
         $mysqldump = $this->trouverBinaire('mysqldump');
-        if (!$mysqldump) {
+        if (! $mysqldump) {
             throw new \RuntimeException(
-                "mysqldump introuvable. Vérifiez votre installation MySQL (XAMPP/WAMP) ou définissez ".
-                "SAUVEGARDE_MYSQL_BIN_PATH dans le fichier .env."
+                'mysqldump introuvable. Vérifiez votre installation MySQL (XAMPP/WAMP) ou définissez '.
+                'SAUVEGARDE_MYSQL_BIN_PATH dans le fichier .env.'
             );
         }
 
-        $config     = config('database.connections.mysql');
-        $nomFichier = $prefixe . '_' . now()->format('Y-m-d_H-i-s') . '.sql';
-        $chemin     = $this->repertoire() . DIRECTORY_SEPARATOR . $nomFichier;
+        $config = config('database.connections.mysql');
+        $nomFichier = $prefixe.'_'.now()->format('Y-m-d_H-i-s').'.sql';
+        $chemin = $this->repertoire().DIRECTORY_SEPARATOR.$nomFichier;
 
         // Le mot de passe passe par une variable d'environnement plutôt que par
         // l'argument -p en ligne de commande, pour ne pas rester visible en
         // clair dans le gestionnaire des tâches pendant l'exécution.
-        if (!empty($config['password'])) {
-            putenv('MYSQL_PWD=' . $config['password']);
+        if (! empty($config['password'])) {
+            putenv('MYSQL_PWD='.$config['password']);
         }
 
         $commande = sprintf(
@@ -72,15 +72,15 @@ class SauvegardeService
 
         exec($commande, $sortie, $code);
 
-        if (!empty($config['password'])) {
+        if (! empty($config['password'])) {
             putenv('MYSQL_PWD');
         }
 
-        if ($code !== 0 || !file_exists($chemin) || filesize($chemin) < 50) {
+        if ($code !== 0 || ! file_exists($chemin) || filesize($chemin) < 50) {
             if (file_exists($chemin)) {
                 unlink($chemin);
             }
-            throw new \RuntimeException('Échec de la sauvegarde : ' . implode(' ', $sortie));
+            throw new \RuntimeException('Échec de la sauvegarde : '.implode(' ', $sortie));
         }
 
         $this->purgerAnciennes();
@@ -94,20 +94,20 @@ class SauvegardeService
      * restauration déclenchée par erreur.
      *
      * @throws \RuntimeException si le fichier est invalide, mysql est
-     *   introuvable, ou la restauration échoue
+     *                           introuvable, ou la restauration échoue
      */
     public function restaurer(string $nomFichier): void
     {
         $chemin = $this->cheminSecurise($nomFichier);
-        if (!$chemin) {
+        if (! $chemin) {
             throw new \RuntimeException("Fichier de sauvegarde introuvable ou invalide : {$nomFichier}");
         }
 
         $mysql = $this->trouverBinaire('mysql');
-        if (!$mysql) {
+        if (! $mysql) {
             throw new \RuntimeException(
-                "Le client mysql est introuvable. Vérifiez votre installation MySQL (XAMPP/WAMP) ou définissez ".
-                "SAUVEGARDE_MYSQL_BIN_PATH dans le fichier .env."
+                'Le client mysql est introuvable. Vérifiez votre installation MySQL (XAMPP/WAMP) ou définissez '.
+                'SAUVEGARDE_MYSQL_BIN_PATH dans le fichier .env.'
             );
         }
 
@@ -115,8 +115,8 @@ class SauvegardeService
 
         $config = config('database.connections.mysql');
 
-        if (!empty($config['password'])) {
-            putenv('MYSQL_PWD=' . $config['password']);
+        if (! empty($config['password'])) {
+            putenv('MYSQL_PWD='.$config['password']);
         }
 
         $commande = sprintf(
@@ -131,12 +131,12 @@ class SauvegardeService
 
         exec($commande, $sortie, $code);
 
-        if (!empty($config['password'])) {
+        if (! empty($config['password'])) {
             putenv('MYSQL_PWD');
         }
 
         if ($code !== 0) {
-            throw new \RuntimeException('Échec de la restauration : ' . implode(' ', $sortie));
+            throw new \RuntimeException('Échec de la restauration : '.implode(' ', $sortie));
         }
     }
 
@@ -146,7 +146,7 @@ class SauvegardeService
     public function restaurerDerniere(): string
     {
         $derniere = $this->derniere();
-        if (!$derniere) {
+        if (! $derniere) {
             throw new \RuntimeException('Aucune sauvegarde disponible à restaurer.');
         }
 
@@ -162,11 +162,11 @@ class SauvegardeService
      */
     public function cheminSecurise(string $nomFichier): ?string
     {
-        if (!preg_match(self::MOTIF_NOM_FICHIER, $nomFichier)) {
+        if (! preg_match(self::MOTIF_NOM_FICHIER, $nomFichier)) {
             return null;
         }
 
-        $chemin = $this->repertoire() . DIRECTORY_SEPARATOR . $nomFichier;
+        $chemin = $this->repertoire().DIRECTORY_SEPARATOR.$nomFichier;
 
         return file_exists($chemin) ? $chemin : null;
     }
@@ -178,7 +178,7 @@ class SauvegardeService
 
     private function assurerRepertoire(): void
     {
-        if (!is_dir($this->repertoire())) {
+        if (! is_dir($this->repertoire())) {
             mkdir($this->repertoire(), 0755, true);
         }
     }
@@ -186,7 +186,7 @@ class SauvegardeService
     private function purgerAnciennes(): void
     {
         $conserver = (int) config('sauvegarde.conserver', 30);
-        $fichiers  = glob($this->repertoire() . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+        $fichiers = glob($this->repertoire().DIRECTORY_SEPARATOR.'*.sql') ?: [];
 
         if (count($fichiers) <= $conserver) {
             return;
@@ -208,14 +208,14 @@ class SauvegardeService
         ]);
 
         foreach ($repertoires as $repertoire) {
-            $chemin = rtrim($repertoire, '\\/') . DIRECTORY_SEPARATOR . $nom . '.exe';
+            $chemin = rtrim($repertoire, '\\/').DIRECTORY_SEPARATOR.$nom.'.exe';
             if (file_exists($chemin)) {
                 return $chemin;
             }
         }
 
-        exec('where ' . escapeshellarg($nom) . ' 2>NUL', $sortie, $code);
-        if ($code === 0 && !empty($sortie)) {
+        exec('where '.escapeshellarg($nom).' 2>NUL', $sortie, $code);
+        if ($code === 0 && ! empty($sortie)) {
             return trim($sortie[0]);
         }
 

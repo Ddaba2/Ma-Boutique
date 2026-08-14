@@ -33,6 +33,12 @@
                     <i class="fas fa-database me-2"></i>Sauvegarde et restauration
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {{ $ongletActif === 'journal' ? 'active' : '' }}" id="onglet-journal-btn"
+                        data-bs-toggle="tab" data-bs-target="#onglet-journal" type="button" role="tab">
+                    <i class="fas fa-clipboard-list me-2"></i>Journal d'activité
+                </button>
+            </li>
         </ul>
 
         <div class="tab-content">
@@ -41,6 +47,9 @@
             </div>
             <div class="tab-pane fade {{ $ongletActif === 'sauvegardes' ? 'show active' : '' }}" id="onglet-sauvegardes" role="tabpanel">
                 @include('parametres._sauvegardes')
+            </div>
+            <div class="tab-pane fade {{ $ongletActif === 'journal' ? 'show active' : '' }}" id="onglet-journal" role="tabpanel">
+                @include('parametres._journal')
             </div>
         </div>
 

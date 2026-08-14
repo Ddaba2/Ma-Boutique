@@ -20,13 +20,13 @@ return [
     | Modifiez ces valeurs pour personnaliser vos factures.
     */
     'entreprise' => [
-        'nom'       => 'GesBoutique',
-        'slogan'    => 'Matériel informatique & mobilier de bureau',
-        'nif'       => 'NIF — — — — —',
-        'adresse'   => "Adresse de l'entreprise\nVille, Pays",
+        'nom' => 'GesBoutique',
+        'slogan' => 'Matériel informatique & mobilier de bureau',
+        'nif' => 'NIF — — — — —',
+        'adresse' => "Adresse de l'entreprise\nVille, Pays",
         'telephone' => '+223 — — — — —',
-        'email'     => 'contact@gesboutique.com',
-        'site_web'  => '',
+        'email' => 'contact@gesboutique.com',
+        'site_web' => '',
     ],
 
     /*
@@ -38,6 +38,6 @@ return [
     'client_adresse_defaut' => "Adresse du client\nVille, Pays",
 
     'conditions_paiement' => 'Paiement comptant à la livraison. Merci de conserver ce document.',
-    'mention_legale'      => 'Document généré automatiquement — valable sans signature pour les ventes au comptant.',
+    'mention_legale' => 'Document généré automatiquement — valable sans signature pour les ventes au comptant.',
 
 ];

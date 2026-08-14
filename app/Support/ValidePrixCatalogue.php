@@ -9,7 +9,7 @@ class ValidePrixCatalogue
     /**
      * Vérifie que chaque ligne correspond au prix de vente du catalogue.
      *
-     * @param array<int, array{produit_id: int, prix_unitaire: float|int|string}> $lignes
+     * @param  array<int, array{produit_id: int, prix_unitaire: float|int|string}>  $lignes
      */
     public static function prixConformes(array $lignes): bool
     {

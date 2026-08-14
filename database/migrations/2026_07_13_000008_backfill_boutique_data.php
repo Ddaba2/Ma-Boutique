@@ -33,12 +33,10 @@ return new class extends Migration
         DB::table('ventes')->update(['boutique_id' => $boutiqueId]);
         DB::table('mouvements_stock')->update(['boutique_id' => $boutiqueId]);
         DB::table('clotures_caisse')->update(['boutique_id' => $boutiqueId]);
-        DB::table('commandes')->update(['boutique_id' => $boutiqueId]);
     }
 
     public function down(): void
     {
-        DB::table('commandes')->update(['boutique_id' => null]);
         DB::table('clotures_caisse')->update(['boutique_id' => null]);
         DB::table('mouvements_stock')->update(['boutique_id' => null]);
         DB::table('ventes')->update(['boutique_id' => null]);

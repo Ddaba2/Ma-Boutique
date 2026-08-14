@@ -10,11 +10,11 @@ class Categorie extends Model
         'nom',
         'description',
         'couleur',
-        'active'
+        'active',
     ];
 
     protected $casts = [
-        'active' => 'boolean'
+        'active' => 'boolean',
     ];
 
     public function produits()

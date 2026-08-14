@@ -12,13 +12,13 @@ class PdfBranding
         $defaults = config('facture.entreprise', []);
 
         return [
-            'nom'       => $entreprise?->nom ?? ($defaults['nom'] ?? 'GesBoutique'),
-            'nif'       => $entreprise?->nif ?? ($defaults['nif'] ?? ''),
-            'adresse'   => $entreprise?->adresse ?? ($defaults['adresse'] ?? ''),
+            'nom' => $entreprise?->nom ?? ($defaults['nom'] ?? 'GesBoutique'),
+            'nif' => $entreprise?->nif ?? ($defaults['nif'] ?? ''),
+            'adresse' => $entreprise?->adresse ?? ($defaults['adresse'] ?? ''),
             'telephone' => $entreprise?->telephone ?? ($defaults['telephone'] ?? ''),
-            'email'     => $entreprise?->email ?? ($defaults['email'] ?? ''),
-            'site_web'  => $entreprise?->site_web ?? ($defaults['site_web'] ?? ''),
-            'logoPath'  => self::logoPath($entreprise),
+            'email' => $entreprise?->email ?? ($defaults['email'] ?? ''),
+            'site_web' => $entreprise?->site_web ?? ($defaults['site_web'] ?? ''),
+            'logoPath' => self::logoPath($entreprise),
         ];
     }
 
@@ -27,7 +27,7 @@ class PdfBranding
         $entreprise ??= Entreprise::first();
 
         if ($entreprise?->logo) {
-            $storagePath = storage_path('app/public/' . $entreprise->logo);
+            $storagePath = storage_path('app/public/'.$entreprise->logo);
             if (is_file($storagePath)) {
                 return $storagePath;
             }
@@ -60,7 +60,7 @@ class PdfBranding
     public static function logoUrl(?Entreprise $entreprise = null): ?string
     {
         $path = self::logoPath($entreprise);
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 
@@ -73,8 +73,8 @@ class PdfBranding
             return asset($relative);
         }
 
-        if ($entreprise?->logo && is_file(storage_path('app/public/' . $entreprise->logo))) {
-            return asset('storage/' . $entreprise->logo);
+        if ($entreprise?->logo && is_file(storage_path('app/public/'.$entreprise->logo))) {
+            return asset('storage/'.$entreprise->logo);
         }
 
         return null;
@@ -88,8 +88,8 @@ class PdfBranding
 
         return [
             'entreprise' => $entreprise,
-            'logoPath'   => $branding['logoPath'],
-            'branding'   => $branding,
+            'logoPath' => $branding['logoPath'],
+            'branding' => $branding,
         ];
     }
 }

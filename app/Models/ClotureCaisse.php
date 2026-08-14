@@ -13,20 +13,20 @@ class ClotureCaisse extends Model
 
     protected $fillable = [
         'date', 'boutique_id', 'fond_ouverture', 'montant_compte', 'total_especes', 'total_carte', 'total_mobile',
-        'total_autre', 'total_ventes', 'nombre_ventes', 'ecart', 'notes', 'statut', 'user_id'
+        'total_autre', 'total_ventes', 'nombre_ventes', 'ecart', 'notes', 'statut', 'user_id',
     ];
 
     protected $casts = [
-        'date'           => 'date',
+        'date' => 'date',
         'fond_ouverture' => 'decimal:2',
         'montant_compte' => 'decimal:2',
-        'total_especes'  => 'decimal:2',
-        'total_carte'    => 'decimal:2',
-        'total_mobile'   => 'decimal:2',
-        'total_autre'    => 'decimal:2',
-        'total_ventes'   => 'decimal:2',
-        'ecart'          => 'decimal:2',
-        'nombre_ventes'  => 'integer',
+        'total_especes' => 'decimal:2',
+        'total_carte' => 'decimal:2',
+        'total_mobile' => 'decimal:2',
+        'total_autre' => 'decimal:2',
+        'total_ventes' => 'decimal:2',
+        'ecart' => 'decimal:2',
+        'nombre_ventes' => 'integer',
     ];
 
     public function user()

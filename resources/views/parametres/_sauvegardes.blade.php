@@ -15,10 +15,11 @@
             </form>
 
             @if(count($sauvegardes) > 0)
-            <form method="POST" action="{{ route('sauvegardes.restaurer') }}"
+            <form method="POST" action="{{ route('sauvegardes.restaurer') }}" class="d-flex gap-2"
                   onsubmit="return confirm('Ceci va REMPLACER toutes les données actuelles par celles de la sauvegarde du {{ $sauvegardes[0]['date']->format('d/m/Y à H:i') }}.\n\nL\'état actuel sera sauvegardé automatiquement avant, mais confirmez-vous vouloir continuer ?');">
                 @csrf
-                <button type="submit" class="btn btn-outline-danger">
+                <input type="password" name="password" class="form-control form-control-sm" placeholder="Votre mot de passe" required style="width: 180px;">
+                <button type="submit" class="btn btn-outline-danger text-nowrap">
                     <i class="fas fa-undo me-2"></i>Restaurer la dernière sauvegarde
                 </button>
             </form>
@@ -59,10 +60,11 @@
                                 <a href="{{ route('sauvegardes.telecharger', $s['nom']) }}" class="btn btn-outline-primary" title="Télécharger">
                                     <i class="fas fa-download"></i>
                                 </a>
-                                <form method="POST" action="{{ route('sauvegardes.restaurer') }}"
+                                <form method="POST" action="{{ route('sauvegardes.restaurer') }}" class="d-flex gap-1"
                                       onsubmit="return confirm('Ceci va REMPLACER toutes les données actuelles par celles de la sauvegarde {{ $s['nom'] }} ({{ $s['date']->format('d/m/Y à H:i') }}).\n\nL\'état actuel sera sauvegardé automatiquement avant, mais confirmez-vous vouloir continuer ?');">
                                     @csrf
                                     <input type="hidden" name="fichier" value="{{ $s['nom'] }}">
+                                    <input type="password" name="password" class="form-control form-control-sm" placeholder="Mot de passe" required style="width: 130px;">
                                     <button type="submit" class="btn btn-outline-danger" title="Restaurer cette sauvegarde">
                                         <i class="fas fa-undo"></i>
                                     </button>

@@ -8,7 +8,6 @@ use App\Models\Categorie;
 use App\Models\ClotureCaisse;
 use App\Models\Produit;
 use App\Models\User;
-use App\Models\Vente;
 use App\Services\VenteService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -71,18 +70,18 @@ class SmokeTest extends TestCase
 
         $urls = [
             '/dashboard',
-            '/caisse', '/caisse/create', '/caisse/' . $cloture->id,
-            '/categories', '/categories/' . $categorie->id, '/categories/' . $categorie->id . '/edit',
+            '/caisse', '/caisse/create', '/caisse/'.$cloture->id,
+            '/categories', '/categories/'.$categorie->id, '/categories/'.$categorie->id.'/edit',
             '/produits', '/produits-barcodes', '/produits-import', '/produits/create',
-            '/produits/' . $produit->id, '/produits/' . $produit->id . '/barcode', '/produits/' . $produit->id . '/edit',
+            '/produits/'.$produit->id, '/produits/'.$produit->id.'/barcode', '/produits/'.$produit->id.'/edit',
             '/rapports', '/rapports/export/pdf/complete', '/rapports/export/pdf/stocks', '/rapports/export/pdf/ventes', '/rapports/export/ventes',
             '/rapports/performances', '/rapports/stocks', '/rapports/ventes',
             '/stocks', '/stocks/create', '/stocks/mouvements',
-            '/stocks/' . $produit->id . '/historique', '/stocks/' . $produit->id . '/ajuster',
+            '/stocks/'.$produit->id.'/historique', '/stocks/'.$produit->id.'/ajuster',
             '/ventes', '/ventes/create',
-            '/parametres', '/utilisateurs/create', '/utilisateurs/' . $gerant->id . '/edit',
-            '/ventes/' . $vente->id, '/ventes/' . $vente->id . '/facture', '/ventes/' . $vente->id . '/ticket',
-            '/ventes/' . $vente->id . '/edit',
+            '/parametres', '/utilisateurs/create', '/utilisateurs/'.$gerant->id.'/edit',
+            '/ventes/'.$vente->id, '/ventes/'.$vente->id.'/facture', '/ventes/'.$vente->id.'/ticket',
+            '/ventes/'.$vente->id.'/edit',
         ];
 
         $echecs = [];
@@ -93,6 +92,6 @@ class SmokeTest extends TestCase
             }
         }
 
-        $this->assertEmpty($echecs, "Pages en erreur serveur :\n" . implode("\n", $echecs));
+        $this->assertEmpty($echecs, "Pages en erreur serveur :\n".implode("\n", $echecs));
     }
 }

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 class EnvoyerAlertesStock extends Command
 {
     protected $signature = 'alertes:stock';
+
     protected $description = 'Envoie une alerte email aux gérants pour chaque boutique ayant des produits en rupture ou en stock faible';
 
     public function handle(): int
@@ -20,6 +21,7 @@ class EnvoyerAlertesStock extends Command
 
         if ($gerants->isEmpty()) {
             $this->info('Aucun gérant actif à notifier.');
+
             return 0;
         }
 
@@ -41,6 +43,7 @@ class EnvoyerAlertesStock extends Command
         }
 
         $this->info("Alertes envoyées pour $envois boutique(s).");
+
         return 0;
     }
 }

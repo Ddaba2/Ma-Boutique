@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Entreprise;
+use Illuminate\Database\Seeder;
 
 class EntrepriseSeeder extends Seeder
 {
@@ -22,7 +21,7 @@ class EntrepriseSeeder extends Seeder
                 'telephone' => '+221 77 123 45 67',
                 'email' => 'contact@gesboutique.com',
                 'logo' => 'logo-gesboutique.png',
-                'site_web' => 'www.gesboutique.com'
+                'site_web' => 'www.gesboutique.com',
             ]
         );
     }

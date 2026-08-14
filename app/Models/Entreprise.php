@@ -13,6 +13,6 @@ class Entreprise extends Model
         'telephone',
         'email',
         'logo',
-        'site_web'
+        'site_web',
     ];
 }

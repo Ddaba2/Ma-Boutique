@@ -23,14 +23,14 @@ class MouvementStock extends Model
         'motif',
         'fournisseur',
         'date_mouvement',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
         'date_mouvement' => 'date',
         'prix_unitaire' => 'decimal:2',
         'total' => 'decimal:2',
-        'quantite' => 'integer'
+        'quantite' => 'integer',
     ];
 
     public function produit()
@@ -40,6 +40,6 @@ class MouvementStock extends Model
 
     public static function generateReference()
     {
-        return ReferenceSequence::next('mouvements_stock_' . now()->format('Ymd'), 'STK' . now()->format('Ymd'), 4);
+        return ReferenceSequence::next('mouvements_stock_'.now()->format('Ymd'), 'STK'.now()->format('Ymd'), 4);
     }
 }

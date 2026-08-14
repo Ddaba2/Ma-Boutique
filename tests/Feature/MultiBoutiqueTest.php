@@ -24,7 +24,10 @@ class MultiBoutiqueTest extends TestCase
 
     public function test_un_gerant_sans_boutique_assignee_bascule_automatiquement_sur_lunique_boutique_active(): void
     {
-        $boutique = Boutique::create(['nom' => 'Boutique unique', 'active' => true]);
+        // La migration de backfill crée déjà "Boutique principale" : on la
+        // réutilise plutôt que d'en créer une seconde, ce qui casserait la
+        // prémisse du test ("l'unique boutique active").
+        $boutique = Boutique::first();
         $gerant = User::factory()->create(['role' => 'gerant', 'active' => true, 'boutique_id' => null]);
 
         $this->actingAs($gerant)->get('/dashboard')->assertOk();

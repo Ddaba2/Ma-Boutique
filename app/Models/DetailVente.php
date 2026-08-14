@@ -17,13 +17,13 @@ class DetailVente extends Model
         'quantite',
         'prix_unitaire',
         'total_ligne',
-        'remise'
+        'remise',
     ];
 
     protected $casts = [
         'prix_unitaire' => 'decimal:2',
         'total_ligne' => 'decimal:2',
-        'remise' => 'decimal:2'
+        'remise' => 'decimal:2',
     ];
 
     public function vente()

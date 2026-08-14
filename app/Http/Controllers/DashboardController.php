@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MouvementStock;
 use App\Models\BoutiqueProduit;
+use App\Models\MouvementStock;
 use App\Models\Vente;
 use App\Support\BoutiqueContext;
 use Illuminate\Support\Facades\DB;
@@ -14,9 +14,9 @@ class DashboardController extends Controller
     {
         $boutiqueId = BoutiqueContext::id();
 
-        $totalStock        = BoutiqueProduit::dansBoutique($boutiqueId)->sum('stock_actuel');
-        $ventesAujourdHui  = Vente::whereDate('created_at', today())->count();
-        $stockFaible       = BoutiqueProduit::dansBoutique($boutiqueId)->stockFaible()->count();
+        $totalStock = BoutiqueProduit::dansBoutique($boutiqueId)->sum('stock_actuel');
+        $ventesAujourdHui = Vente::whereDate('created_at', today())->count();
+        $stockFaible = BoutiqueProduit::dansBoutique($boutiqueId)->stockFaible()->count();
         $produitsEnRupture = BoutiqueProduit::dansBoutique($boutiqueId)->enRupture()->count();
 
         $ventesDuJour = Vente::whereDate('created_at', today())
@@ -42,12 +42,12 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('date');
 
-        $labels30j  = [];
-        $data30j    = [];
+        $labels30j = [];
+        $data30j = [];
         for ($i = 29; $i >= 0; $i--) {
             $d = now()->subDays($i)->toDateString();
             $labels30j[] = now()->subDays($i)->format('d/m');
-            $data30j[]   = isset($ventesParJour[$d]) ? (float) $ventesParJour[$d]->total : 0;
+            $data30j[] = isset($ventesParJour[$d]) ? (float) $ventesParJour[$d]->total : 0;
         }
 
         // Graphique 2 : Répartition par mode de paiement (30 jours)
@@ -59,7 +59,7 @@ class DashboardController extends Controller
 
         $libellesModePaiement = Vente::libellesModePaiement();
         $labelsPaiement = $parModePaiement->pluck('mode_paiement')
-            ->map(fn($m) => $libellesModePaiement[$m] ?? ucfirst($m))
+            ->map(fn ($m) => $libellesModePaiement[$m] ?? ucfirst($m))
             ->toArray();
         $dataPaiement = $parModePaiement->pluck('total')->toArray();
 
@@ -77,7 +77,7 @@ class DashboardController extends Controller
             ->get();
 
         $labelsTop = $topProduits->pluck('nom')->toArray();
-        $dataTop   = $topProduits->pluck('total_qty')->toArray();
+        $dataTop = $topProduits->pluck('total_qty')->toArray();
 
         return view('dashboard', compact(
             'totalStock', 'ventesAujourdHui', 'stockFaible', 'produitsEnRupture',

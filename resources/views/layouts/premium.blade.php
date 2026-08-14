@@ -426,6 +426,12 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-3">
+                            {{-- État de la connexion : utile en caisse pour savoir si les ventes vont partir en file d'attente --}}
+                            <span class="badge rounded-pill text-bg-secondary d-none d-sm-inline-flex align-items-center gap-1" id="connectivite-indicateur" title="État de la connexion">
+                                <span class="rounded-circle" style="width:8px;height:8px;background:currentColor;"></span>
+                                <span id="connectivite-label">…</span>
+                            </span>
+
                             {{-- Ventes hors-ligne en attente de synchronisation --}}
                             <button type="button" class="btn btn-light btn-sm rounded-circle p-2 position-relative notif-bell" title="Ventes en attente de synchronisation" onclick="window.OfflineVentesUI && window.OfflineVentesUI.synchroniser()">
                                 <i class="fas fa-cloud-arrow-up"></i>
@@ -464,6 +470,9 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Résultat de la synchronisation des ventes hors-ligne (rempli en JS, voir offline-ventes.js) -->
+                <div id="offline-sync-alerte"></div>
 
                 <!-- Flash Messages -->
                 @foreach(['success' => 'check-circle', 'error' => 'exclamation-circle', 'warning' => 'exclamation-triangle', 'info' => 'info-circle'] as $type => $icon)

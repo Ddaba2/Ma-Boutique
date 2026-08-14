@@ -12,26 +12,27 @@ class UtilisateurController extends Controller
     public function create()
     {
         $boutiques = Boutique::where('active', true)->orderBy('nom')->get();
+
         return view('utilisateurs.create', compact('boutiques'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|email|unique:users,email',
-            'password'    => 'required|string|min:6|confirmed',
-            'role'        => 'required|in:gerant,gestionnaire,caissier',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6|confirmed',
+            'role' => 'required|in:gerant,gestionnaire,caissier',
             'boutique_id' => 'nullable|exists:boutiques,id|required_unless:role,gerant',
         ]);
 
         User::create([
-            'name'        => $request->name,
-            'email'       => $request->email,
-            'password'    => Hash::make($request->password),
-            'role'        => $request->role,
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role,
             'boutique_id' => $request->role === 'gerant' ? null : $request->boutique_id,
-            'active'      => true,
+            'active' => true,
         ]);
 
         return redirect()->route('parametres.index')
@@ -41,26 +42,27 @@ class UtilisateurController extends Controller
     public function edit(User $utilisateur)
     {
         $boutiques = Boutique::where('active', true)->orderBy('nom')->get();
+
         return view('utilisateurs.edit', compact('utilisateur', 'boutiques'));
     }
 
     public function update(Request $request, User $utilisateur)
     {
         $request->validate([
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|email|unique:users,email,' . $utilisateur->id,
-            'role'        => 'required|in:gerant,gestionnaire,caissier',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$utilisateur->id,
+            'role' => 'required|in:gerant,gestionnaire,caissier',
             'boutique_id' => 'nullable|exists:boutiques,id|required_unless:role,gerant',
-            'active'      => 'boolean',
-            'password'    => 'nullable|string|min:6|confirmed',
+            'active' => 'boolean',
+            'password' => 'nullable|string|min:6|confirmed',
         ]);
 
         $data = [
-            'name'        => $request->name,
-            'email'       => $request->email,
-            'role'        => $request->role,
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $request->role,
             'boutique_id' => $request->role === 'gerant' ? null : $request->boutique_id,
-            'active'      => $request->boolean('active', true),
+            'active' => $request->boolean('active', true),
         ];
 
         if ($request->filled('password')) {
@@ -80,6 +82,7 @@ class UtilisateurController extends Controller
         }
 
         $utilisateur->update(['active' => false]);
+
         return redirect()->route('parametres.index')
             ->with('success', 'Utilisateur désactivé.');
     }

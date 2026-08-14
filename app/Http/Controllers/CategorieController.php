@@ -11,6 +11,7 @@ class CategorieController extends Controller
     public function index()
     {
         $categories = Categorie::withCount('produits')->orderBy('nom')->get();
+
         return view('categories.index', compact('categories'));
     }
 
@@ -40,6 +41,7 @@ class CategorieController extends Controller
     public function show(Categorie $categorie)
     {
         $categorie->load('produits');
+
         return view('categories.show', compact('categorie'));
     }
 
@@ -51,7 +53,7 @@ class CategorieController extends Controller
     public function update(Request $request, Categorie $categorie)
     {
         $data = $request->validate([
-            'nom' => ['required', 'string', 'max:255', 'unique:categories,nom,' . $categorie->id, ReglesChamps::NOM_SANS_HTML],
+            'nom' => ['required', 'string', 'max:255', 'unique:categories,nom,'.$categorie->id, ReglesChamps::NOM_SANS_HTML],
             'description' => 'nullable|string',
             'couleur' => 'nullable|regex:/^#[0-9A-Fa-f]{6}$/',
             'active' => 'boolean',
