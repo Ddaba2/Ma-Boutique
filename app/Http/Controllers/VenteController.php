@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Vente;
+use App\Exceptions\MontantInsuffisantException;
+use App\Exceptions\StockInsuffisantException;
 use App\Models\BoutiqueProduit;
+use App\Models\Entreprise;
+use App\Models\JournalActivite;
 use App\Models\MouvementStock;
+use App\Models\Vente;
+use App\Services\VenteService;
 use App\Support\BoutiqueContext;
 use App\Support\PdfBranding;
-use App\Services\VenteService;
-use App\Exceptions\StockInsuffisantException;
-use App\Exceptions\MontantInsuffisantException;
-use App\Models\Produit;
 use App\Support\ValidePrixCatalogue;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -21,6 +22,7 @@ class VenteController extends Controller
     public function index()
     {
         $ventes = Vente::with('detailVentes.produit')->orderBy('created_at', 'desc')->paginate(10);
+
         return view('ventes.index', compact('ventes'));
     }
 
@@ -58,7 +60,7 @@ class VenteController extends Controller
         // vérité : un caissier pourrait le modifier depuis les outils
         // développeur du navigateur. On vérifie qu'il correspond au prix de
         // vente réel du catalogue avant d'accepter la vente.
-        if (!ValidePrixCatalogue::prixConformes($lignes)) {
+        if (! ValidePrixCatalogue::prixConformes($lignes)) {
             return back()->with('error', 'Le prix d\'un produit a changé, veuillez réessayer la vente.')->withInput();
         }
 
@@ -72,12 +74,13 @@ class VenteController extends Controller
             ], BoutiqueContext::id());
 
             return redirect()->route('ventes.index')
-                ->with('success', 'Vente enregistrée avec succès! Référence: ' . $vente->reference . ', Total: ' . number_format($vente->total, 0, ',', ' ') . ' FCFA');
+                ->with('success', 'Vente enregistrée avec succès! Référence: '.$vente->reference.', Total: '.number_format($vente->total, 0, ',', ' ').' FCFA');
 
         } catch (StockInsuffisantException|MontantInsuffisantException $e) {
             return back()->with('error', $e->getMessage())->withInput();
         } catch (\Exception $e) {
             report($e);
+
             return back()->with('error', 'Une erreur est survenue lors de l\'enregistrement de la vente. Veuillez réessayer.')
                 ->withInput();
         }
@@ -86,6 +89,7 @@ class VenteController extends Controller
     public function show(Vente $vente)
     {
         $vente->load('detailVentes.produit');
+
         return view('ventes.show', compact('vente'));
     }
 
@@ -113,7 +117,7 @@ class VenteController extends Controller
             'client_telephone' => 'nullable|string|max:20',
             'client_email' => 'nullable|email|max:255',
             'notes' => 'nullable|string',
-            'mode_paiement' => 'required|in:espece,carte,mobile,autre'
+            'mode_paiement' => 'required|in:espece,carte,mobile,autre',
         ]);
 
         $vente->update($data);
@@ -152,13 +156,19 @@ class VenteController extends Controller
                         'prix_unitaire' => $detail->prix_unitaire,
                         'total' => $detail->total_ligne,
                         'reference' => MouvementStock::generateReference(),
-                        'motif' => 'Annulation vente ' . $vente->reference,
+                        'motif' => 'Annulation vente '.$vente->reference,
                         'date_mouvement' => now(),
-                        'notes' => 'Annulée par ' . (Auth::user()->name ?? 'système'),
+                        'notes' => 'Annulée par '.(Auth::user()->name ?? 'système'),
                     ]);
                 }
 
                 $vente->update(['statut' => 'annulee']);
+
+                JournalActivite::enregistrer(
+                    'vente.annulee',
+                    "Vente {$vente->reference} annulée (total ".number_format($vente->total, 0, ',', ' ').' FCFA), stock restitué.',
+                    $vente
+                );
             });
 
             return redirect()->route('ventes.index')
@@ -166,6 +176,7 @@ class VenteController extends Controller
 
         } catch (\Exception $e) {
             report($e);
+
             return redirect()->route('ventes.index')
                 ->with('error', "Erreur lors de l'annulation de la vente.");
         }
@@ -174,7 +185,7 @@ class VenteController extends Controller
     public function ticket(Vente $vente, Request $request)
     {
         $vente->load('detailVentes.produit');
-        $entreprise = \App\Models\Entreprise::first();
+        $entreprise = Entreprise::first();
         $largeur = $request->integer('largeur', 80) === 58 ? 58 : 80;
 
         return view('ventes.ticket', compact('vente', 'entreprise', 'largeur'));
@@ -188,10 +199,10 @@ class VenteController extends Controller
             compact('vente'),
             PdfBranding::forView()
         ));
-        
+
         // Nom du fichier
-        $filename = 'facture_' . $vente->reference . '_' . $vente->created_at->format('Y-m-d') . '.pdf';
-        
+        $filename = 'facture_'.$vente->reference.'_'.$vente->created_at->format('Y-m-d').'.pdf';
+
         // Télécharger le PDF
         return $pdf->download($filename);
     }

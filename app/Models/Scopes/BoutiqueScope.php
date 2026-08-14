@@ -17,7 +17,7 @@ class BoutiqueScope implements Scope
     public function apply(Builder $builder, Model $model): void
     {
         if ($boutiqueId = Session::get('boutique_id')) {
-            $builder->where($model->getTable() . '.boutique_id', $boutiqueId);
+            $builder->where($model->getTable().'.boutique_id', $boutiqueId);
         }
     }
 }

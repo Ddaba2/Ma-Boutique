@@ -50,7 +50,7 @@ class Boutique extends Model
                 'updated_at' => $maintenant,
             ])->all();
 
-            if (!empty($lignes)) {
+            if (! empty($lignes)) {
                 BoutiqueProduit::insert($lignes);
             }
         });

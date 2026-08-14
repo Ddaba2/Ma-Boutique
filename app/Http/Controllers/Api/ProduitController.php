@@ -28,11 +28,11 @@ class ProduitController extends Controller
         $boutiqueId = BoutiqueContext::id();
         $inclureRuptures = $request->boolean('inclure_ruptures');
 
-        $produits = Produit::where('nom', 'like', '%' . $query . '%')
+        $produits = Produit::where('nom', 'like', '%'.$query.'%')
             ->where('active', true)
             ->whereHas('boutiqueProduits', function ($q) use ($boutiqueId, $inclureRuptures) {
                 $q->dansBoutique($boutiqueId);
-                if (!$inclureRuptures) {
+                if (! $inclureRuptures) {
                     $q->where('stock_actuel', '>', 0);
                 }
             })

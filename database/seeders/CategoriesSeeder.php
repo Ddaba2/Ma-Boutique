@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Categorie;
+use Illuminate\Database\Seeder;
 
 class CategoriesSeeder extends Seeder
 {
@@ -14,38 +14,38 @@ class CategoriesSeeder extends Seeder
                 'nom' => 'Boissons',
                 'description' => 'Toutes sortes de boissons',
                 'couleur' => '#3B82F6',
-                'active' => true
+                'active' => true,
             ],
             [
                 'nom' => 'Alimentation',
                 'description' => 'Produits alimentaires de base',
                 'couleur' => '#10B981',
-                'active' => true
+                'active' => true,
             ],
             [
                 'nom' => 'Électronique',
                 'description' => 'Appareils électroniques et accessoires',
                 'couleur' => '#8B5CF6',
-                'active' => true
+                'active' => true,
             ],
             [
                 'nom' => 'Vêtements',
                 'description' => 'Habits et accessoires',
                 'couleur' => '#F59E0B',
-                'active' => true
+                'active' => true,
             ],
             [
                 'nom' => 'Maison',
                 'description' => 'Articles pour la maison',
                 'couleur' => '#EF4444',
-                'active' => true
+                'active' => true,
             ],
             [
                 'nom' => 'Hygiène',
                 'description' => 'Produits de beauté et hygiène',
                 'couleur' => '#EC4899',
-                'active' => true
-            ]
+                'active' => true,
+            ],
         ];
 
         foreach ($categories as $categorie) {

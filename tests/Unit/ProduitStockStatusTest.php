@@ -20,9 +20,16 @@ class ProduitStockStatusTest extends TestCase
 {
     use RefreshDatabase;
 
+    private ?Boutique $boutique = null;
+
     private function boutiqueProduit(int $stockActuel, int $stockMin): BoutiqueProduit
     {
-        $boutique = Boutique::create(['nom' => 'Boutique test', 'active' => true]);
+        // Une seule boutique réutilisée pour tous les produits du test : en
+        // créer une nouvelle à chaque appel déclenche Boutique::booted(), qui
+        // amorce une ligne de stock à 0 pour chaque produit déjà existant et
+        // fausse les comptages des scopes ci-dessous.
+        $this->boutique ??= Boutique::create(['nom' => 'Boutique test', 'active' => true]);
+        $boutique = $this->boutique;
         $categorie = Categorie::firstOrCreate(['nom' => 'Catégorie test'], ['active' => true]);
 
         $produit = Produit::create([

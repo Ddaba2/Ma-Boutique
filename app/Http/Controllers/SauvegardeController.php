@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\SauvegardeService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class SauvegardeController extends Controller
 {
@@ -11,9 +13,11 @@ class SauvegardeController extends Controller
     {
         try {
             $fichier = $sauvegardes->creer();
+
             return $this->versOngletSauvegardes()->with('success', "Sauvegarde créée avec succès : {$fichier}");
         } catch (\Throwable $e) {
             report($e);
+
             return $this->versOngletSauvegardes()->with('error', $e->getMessage());
         }
     }
@@ -22,7 +26,15 @@ class SauvegardeController extends Controller
     {
         $request->validate([
             'fichier' => 'nullable|string',
+            'password' => 'required|string',
         ]);
+
+        // Action destructrice (remplace toutes les données actuelles) : on
+        // exige une reconfirmation par mot de passe, une simple confirmation
+        // JS n'étant qu'un garde-fou côté UX, pas une vérification réelle.
+        if (! Hash::check($request->string('password')->toString(), Auth::user()->password)) {
+            return $this->versOngletSauvegardes()->with('error', 'Mot de passe incorrect. Restauration annulée.');
+        }
 
         try {
             if ($request->filled('fichier')) {
@@ -35,6 +47,7 @@ class SauvegardeController extends Controller
             return $this->versOngletSauvegardes()->with('success', "Base de données restaurée depuis : {$fichier}. Une sauvegarde de sécurité de l'état précédent a été créée automatiquement.");
         } catch (\Throwable $e) {
             report($e);
+
             return $this->versOngletSauvegardes()->with('error', $e->getMessage());
         }
     }

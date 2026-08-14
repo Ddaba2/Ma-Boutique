@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Produit;
-use App\Models\MouvementStock;
 use App\Models\BoutiqueProduit;
 use App\Models\Categorie;
+use App\Models\JournalActivite;
+use App\Models\MouvementStock;
+use App\Models\Produit;
 use App\Support\BoutiqueContext;
 use App\Support\ReglesChamps;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
@@ -21,7 +22,7 @@ class StockController extends Controller
         $stocks = BoutiqueProduit::dansBoutique($boutiqueId)
             ->with('produit.categorie')
             ->when(request('categorie_id'), function ($query, $categorieId) {
-                return $query->whereHas('produit', fn($q) => $q->where('categorie_id', $categorieId));
+                return $query->whereHas('produit', fn ($q) => $q->where('categorie_id', $categorieId));
             })
             ->parStatutStock(request('statut_stock'))
             ->get();
@@ -31,21 +32,21 @@ class StockController extends Controller
         $produits = BoutiqueProduit::fusionnerAvecCatalogue($stocks);
 
         $totalProduits = $produits->count();
-        $produitsEnRupture = $stocks->filter(fn($s) => $s->statutStock() === 'rupture')->count();
-        $produitsStockFaible = $stocks->filter(fn($s) => $s->statutStock() === 'faible')->count();
-        $produitsStockNormal = $stocks->filter(fn($s) => $s->statutStock() === 'normal')->count();
+        $produitsEnRupture = $stocks->filter(fn ($s) => $s->statutStock() === 'rupture')->count();
+        $produitsStockFaible = $stocks->filter(fn ($s) => $s->statutStock() === 'faible')->count();
+        $produitsStockNormal = $stocks->filter(fn ($s) => $s->statutStock() === 'normal')->count();
 
-        $valeurStock = $produits->sum(function($produit) {
+        $valeurStock = $produits->sum(function ($produit) {
             return $produit->stock_actuel * $produit->prix_achat;
         });
 
-        $stockParCategorie = $produits->groupBy('categorie_id')->map(function($catProduits) {
+        $stockParCategorie = $produits->groupBy('categorie_id')->map(function ($catProduits) {
             return [
                 'nombre' => $catProduits->count(),
                 'quantite' => $catProduits->sum('stock_actuel'),
-                'valeur' => $catProduits->sum(function($p) {
+                'valeur' => $catProduits->sum(function ($p) {
                     return $p->stock_actuel * $p->prix_achat;
-                })
+                }),
             ];
         });
 
@@ -77,9 +78,9 @@ class StockController extends Controller
 
         return [
             'totalProduits' => $stocks->count(),
-            'produitsEnRupture' => $stocks->filter(fn($s) => $s->statutStock() === 'rupture')->count(),
-            'produitsStockFaible' => $stocks->filter(fn($s) => $s->statutStock() === 'faible')->count(),
-            'produitsStockNormal' => $stocks->filter(fn($s) => $s->statutStock() === 'normal')->count(),
+            'produitsEnRupture' => $stocks->filter(fn ($s) => $s->statutStock() === 'rupture')->count(),
+            'produitsStockFaible' => $stocks->filter(fn ($s) => $s->statutStock() === 'faible')->count(),
+            'produitsStockNormal' => $stocks->filter(fn ($s) => $s->statutStock() === 'normal')->count(),
         ];
     }
 
@@ -104,15 +105,15 @@ class StockController extends Controller
             // Rechercher le produit exact ou approchant (catalogue partagé entre boutiques)
             $produit = Produit::where('nom', $request->produit_nom)->first();
 
-            if (!$produit) {
-                $produit = Produit::where('nom', 'like', '%' . $request->produit_nom . '%')->first();
+            if (! $produit) {
+                $produit = Produit::where('nom', 'like', '%'.$request->produit_nom.'%')->first();
             }
 
             $isNew = false;
-            if (!$produit) {
+            if (! $produit) {
                 // Créer le produit s'il n'existe pas
                 $isNew = true;
-                $produit = new Produit();
+                $produit = new Produit;
                 $produit->nom = $request->produit_nom;
                 $produit->reference = Produit::generateReference();
                 $produit->prix_achat = $request->prix_achat ?? 0;
@@ -139,7 +140,7 @@ class StockController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if (!$stockBoutique) {
+            if (! $stockBoutique) {
                 $stockBoutique = BoutiqueProduit::create([
                     'boutique_id' => $boutiqueId,
                     'produit_id' => $produit->id,
@@ -154,15 +155,15 @@ class StockController extends Controller
             $total = $request->quantite * $prixUnitaire;
 
             // Construire les notes de mouvement de stock
-            $notesMvt = "";
+            $notesMvt = '';
             if ($request->reference_facture) {
-                $notesMvt .= "Facture N°: " . $request->reference_facture . "\n";
+                $notesMvt .= 'Facture N°: '.$request->reference_facture."\n";
             }
             if ($request->contact_fournisseur) {
-                $notesMvt .= "Contact fournisseur: " . $request->contact_fournisseur . "\n";
+                $notesMvt .= 'Contact fournisseur: '.$request->contact_fournisseur."\n";
             }
             if ($request->notes) {
-                $notesMvt .= "Notes: " . $request->notes;
+                $notesMvt .= 'Notes: '.$request->notes;
             }
 
             // Créer le mouvement de stock pour la traçabilité
@@ -176,7 +177,7 @@ class StockController extends Controller
                 'fournisseur' => $request->fournisseur,
                 'motif' => $request->motif ?? ($isNew ? 'Création de produit et entrée initiale' : 'Réapprovisionnement de stock'),
                 'date_mouvement' => now(),
-                'notes' => trim($notesMvt) ?: null
+                'notes' => trim($notesMvt) ?: null,
             ]);
 
             // Mettre à jour le stock actuel de la boutique courante
@@ -185,9 +186,9 @@ class StockController extends Controller
             DB::commit();
 
             $successMsg = 'Stock ajouté avec succès! ';
-            $successMsg .= 'Produit: ' . $produit->nom . ', ';
-            $successMsg .= 'Quantité: +' . $request->quantite . ', ';
-            $successMsg .= 'Mouvement: ' . $mouvement->reference;
+            $successMsg .= 'Produit: '.$produit->nom.', ';
+            $successMsg .= 'Quantité: +'.$request->quantite.', ';
+            $successMsg .= 'Mouvement: '.$mouvement->reference;
             if ($isNew) {
                 $successMsg .= ' (Nouveau produit enregistré)';
             }
@@ -197,6 +198,7 @@ class StockController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             report($e);
+
             return back()->with('error', 'Une erreur est survenue lors de l\'ajout du stock. Veuillez réessayer.')
                 ->withInput();
         }
@@ -225,6 +227,7 @@ class StockController extends Controller
     public function ajusterForm(Produit $produit)
     {
         $stockBoutique = $produit->stockDans(BoutiqueContext::id());
+
         return view('stocks.ajuster', compact('produit', 'stockBoutique'));
     }
 
@@ -244,7 +247,7 @@ class StockController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if (!$stockBoutique) {
+            if (! $stockBoutique) {
                 $stockBoutique = BoutiqueProduit::create([
                     'boutique_id' => $boutiqueId,
                     'produit_id' => $produit->id,
@@ -267,16 +270,23 @@ class StockController extends Controller
                     'reference' => MouvementStock::generateReference(),
                     'motif' => $request->motif,
                     'date_mouvement' => now(),
-                    'notes' => "Ajustement d'inventaire : {$ancienStock} → {$nouveauStock} (" . ($ecart > 0 ? '+' : '') . "{$ecart})",
+                    'notes' => "Ajustement d'inventaire : {$ancienStock} → {$nouveauStock} (".($ecart > 0 ? '+' : '')."{$ecart})",
                 ]);
 
                 $stockBoutique->update(['stock_actuel' => $nouveauStock]);
+
+                JournalActivite::enregistrer(
+                    'stock.ajuste',
+                    "Stock de « {$produit->nom} » ajusté manuellement : {$ancienStock} → {$nouveauStock} (motif : {$request->motif}).",
+                    $produit
+                );
             }
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);
+
             return back()->with('error', "Erreur lors de l'ajustement du stock.")->withInput();
         }
 

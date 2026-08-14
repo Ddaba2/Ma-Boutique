@@ -32,7 +32,7 @@ class VenteSyncController extends Controller
             'lignes.*.prix_unitaire' => 'required|numeric|min:0',
         ]);
 
-        if (!ValidePrixCatalogue::prixConformes($data['lignes'])) {
+        if (! ValidePrixCatalogue::prixConformes($data['lignes'])) {
             return response()->json([
                 'synced' => false,
                 'message' => 'Le prix d\'un produit ne correspond pas au catalogue.',
@@ -61,6 +61,7 @@ class VenteSyncController extends Controller
             ], 201);
         } catch (\Exception $e) {
             report($e);
+
             return response()->json([
                 'synced' => false,
                 'message' => 'Erreur serveur lors de la synchronisation.',

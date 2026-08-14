@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Boutique;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class ParametresTest extends TestCase
@@ -61,7 +62,7 @@ class ParametresTest extends TestCase
         $this->assertNotNull($cree);
         $this->assertSame('caissier', $cree->role);
         $this->assertTrue($cree->active);
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('motdepasse123', $cree->password));
+        $this->assertTrue(Hash::check('motdepasse123', $cree->password));
     }
 
     public function test_la_creation_echoue_si_lemail_existe_deja(): void
@@ -118,5 +119,40 @@ class ParametresTest extends TestCase
             ->assertRedirect(route('parametres.index'));
 
         $this->assertFalse($caissier->fresh()->active);
+    }
+
+    public function test_une_restauration_sans_mot_de_passe_echoue_la_validation(): void
+    {
+        $boutique = $this->boutique();
+        $gerant = $this->gerant($boutique);
+
+        $this->actingAs($gerant)->post(route('sauvegardes.restaurer'), [])
+            ->assertSessionHasErrors('password');
+    }
+
+    public function test_une_restauration_avec_un_mauvais_mot_de_passe_est_refusee(): void
+    {
+        $boutique = $this->boutique();
+        $gerant = $this->gerant($boutique);
+        $gerant->forceFill(['password' => Hash::make('bonmotdepasse')])->save();
+
+        $this->actingAs($gerant)->post(route('sauvegardes.restaurer'), [
+            'password' => 'mauvaismotdepasse',
+        ])->assertRedirect(route('parametres.index', ['onglet' => 'sauvegardes']));
+
+        $this->assertSame('Mot de passe incorrect. Restauration annulée.', session('error'));
+    }
+
+    public function test_une_restauration_avec_le_bon_mot_de_passe_depasse_la_verification(): void
+    {
+        $boutique = $this->boutique();
+        $gerant = $this->gerant($boutique);
+        $gerant->forceFill(['password' => Hash::make('bonmotdepasse')])->save();
+
+        $this->actingAs($gerant)->post(route('sauvegardes.restaurer'), [
+            'password' => 'bonmotdepasse',
+        ])->assertRedirect(route('parametres.index', ['onglet' => 'sauvegardes']));
+
+        $this->assertNotSame('Mot de passe incorrect. Restauration annulée.', session('error'));
     }
 }

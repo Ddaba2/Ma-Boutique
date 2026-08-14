@@ -23,13 +23,13 @@ class Produit extends Model
         'stock_max',
         'image',
         'active',
-        'categorie_id'
+        'categorie_id',
     ];
 
     protected $casts = [
         'prix_achat' => 'decimal:2',
         'prix_vente' => 'decimal:2',
-        'active' => 'boolean'
+        'active' => 'boolean',
     ];
 
     public function categorie()

@@ -1,24 +1,28 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProduitController;
-use App\Http\Controllers\VenteController;
-use App\Http\Controllers\CategorieController;
-use App\Http\Controllers\RapportController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ClotureCaisseController;
-use App\Http\Controllers\VenteSyncController;
 use App\Http\Controllers\Api\ProduitController as ApiProduitController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategorieController;
+use App\Http\Controllers\ClotureCaisseController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ParametreController;
+use App\Http\Controllers\ProduitController;
+use App\Http\Controllers\RapportController;
+use App\Http\Controllers\SauvegardeController;
+use App\Http\Controllers\StockController;
 use App\Http\Controllers\UtilisateurController;
+use App\Http\Controllers\VenteController;
+use App\Http\Controllers\VenteSyncController;
+use App\Models\BoutiqueProduit;
+use App\Support\BoutiqueContext;
+use Illuminate\Support\Facades\Route;
 
 // Authentification
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:3,1')->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-Route::get('/', fn() => redirect()->route('dashboard'));
+Route::get('/', fn () => redirect()->route('dashboard'));
 
 // Routes protégées par l'authentification
 Route::middleware(['auth', 'boutique'])->group(function () {
@@ -30,13 +34,13 @@ Route::middleware(['auth', 'boutique'])->group(function () {
     Route::middleware('throttle:60,1')->group(function () {
         Route::get('/api/produits/search', [ApiProduitController::class, 'search'])->name('api.produits.search');
         Route::get('/api/stock/alertes', function () {
-            $stocks = \App\Models\BoutiqueProduit::dansBoutique(\App\Support\BoutiqueContext::id())
+            $stocks = BoutiqueProduit::dansBoutique(BoutiqueContext::id())
                 ->enAlerte()
-                ->whereHas('produit', fn($q) => $q->where('active', true))
+                ->whereHas('produit', fn ($q) => $q->where('active', true))
                 ->with('produit')
                 ->get();
 
-            $produits = $stocks->map(fn($s) => [
+            $produits = $stocks->map(fn ($s) => [
                 'id' => $s->produit->id,
                 'nom' => $s->produit->nom,
                 'reference' => $s->produit->reference,
@@ -94,13 +98,13 @@ Route::middleware(['auth', 'boutique'])->group(function () {
     Route::get('/api/csrf-refresh', [VenteSyncController::class, 'rafraichirCsrf'])->name('api.csrf.refresh');
 
     // Stocks
-    Route::get('/stocks', [\App\Http\Controllers\StockController::class, 'index'])->name('stocks.index');
-    Route::get('/stocks/create', [\App\Http\Controllers\StockController::class, 'create'])->name('stocks.create');
-    Route::post('/stocks', [\App\Http\Controllers\StockController::class, 'store'])->name('stocks.store');
-    Route::get('/stocks/mouvements', [\App\Http\Controllers\StockController::class, 'mouvements'])->name('stocks.mouvements');
-    Route::get('/stocks/{produit}/historique', [\App\Http\Controllers\StockController::class, 'historique'])->name('stocks.historique');
-    Route::get('/stocks/{produit}/ajuster', [\App\Http\Controllers\StockController::class, 'ajusterForm'])->name('stocks.ajuster.form');
-    Route::post('/stocks/{produit}/ajuster', [\App\Http\Controllers\StockController::class, 'ajuster'])->name('stocks.ajuster');
+    Route::get('/stocks', [StockController::class, 'index'])->name('stocks.index');
+    Route::get('/stocks/create', [StockController::class, 'create'])->name('stocks.create');
+    Route::post('/stocks', [StockController::class, 'store'])->name('stocks.store');
+    Route::get('/stocks/mouvements', [StockController::class, 'mouvements'])->name('stocks.mouvements');
+    Route::get('/stocks/{produit}/historique', [StockController::class, 'historique'])->name('stocks.historique');
+    Route::get('/stocks/{produit}/ajuster', [StockController::class, 'ajusterForm'])->name('stocks.ajuster.form');
+    Route::post('/stocks/{produit}/ajuster', [StockController::class, 'ajuster'])->name('stocks.ajuster');
 
     // Rapports (affichage + exports PDF/CSV) : accessibles à tous les rôles authentifiés
     Route::get('/rapports', [RapportController::class, 'index'])->name('rapports.index');
@@ -128,8 +132,8 @@ Route::middleware(['auth', 'boutique'])->group(function () {
         Route::resource('utilisateurs', UtilisateurController::class)
             ->only(['create', 'store', 'edit', 'update', 'destroy']);
 
-        Route::post('/sauvegardes', [\App\Http\Controllers\SauvegardeController::class, 'store'])->name('sauvegardes.store');
-        Route::post('/sauvegardes/restaurer', [\App\Http\Controllers\SauvegardeController::class, 'restaurer'])->name('sauvegardes.restaurer');
-        Route::get('/sauvegardes/{fichier}/telecharger', [\App\Http\Controllers\SauvegardeController::class, 'telecharger'])->name('sauvegardes.telecharger');
+        Route::post('/sauvegardes', [SauvegardeController::class, 'store'])->name('sauvegardes.store');
+        Route::post('/sauvegardes/restaurer', [SauvegardeController::class, 'restaurer'])->name('sauvegardes.restaurer');
+        Route::get('/sauvegardes/{fichier}/telecharger', [SauvegardeController::class, 'telecharger'])->name('sauvegardes.telecharger');
     });
 });

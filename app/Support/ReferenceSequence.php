@@ -33,7 +33,7 @@ class ReferenceSequence
                 ]);
             }
 
-            return $prefixe . str_pad((string) $valeur, $largeur, '0', STR_PAD_LEFT);
+            return $prefixe.str_pad((string) $valeur, $largeur, '0', STR_PAD_LEFT);
         });
     }
 }

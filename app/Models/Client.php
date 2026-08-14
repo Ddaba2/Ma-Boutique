@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Client extends Model
 {
     protected $fillable = [
-        'nom', 'prenom', 'telephone', 'email', 'adresse', 'notes', 'active'
+        'nom', 'prenom', 'telephone', 'email', 'adresse', 'notes', 'active',
     ];
 
     protected $casts = [
@@ -21,7 +21,7 @@ class Client extends Model
 
     public function getNomCompletAttribute(): string
     {
-        return trim($this->nom . ' ' . $this->prenom);
+        return trim($this->nom.' '.$this->prenom);
     }
 
     public function totalAchats(): float

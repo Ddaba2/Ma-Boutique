@@ -28,12 +28,13 @@ class EnsureBoutiqueSelected
 
         if ($user->boutique_id) {
             BoutiqueContext::definir($user->boutique_id);
+
             return $next($request);
         }
 
         $boutique = Boutique::where('active', true)->orderBy('id')->first();
 
-        if (!$boutique) {
+        if (! $boutique) {
             abort(500, "Aucune boutique n'est configurée. Contactez votre prestataire.");
         }
 

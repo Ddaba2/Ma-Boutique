@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Categorie;
-use App\Models\Produit;
 use App\Models\BoutiqueProduit;
+use App\Models\Categorie;
+use App\Models\JournalActivite;
 use App\Models\MouvementStock;
+use App\Models\Produit;
 use App\Support\BoutiqueContext;
 use App\Support\ReglesChamps;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class ProduitController extends Controller
 {
@@ -36,6 +38,7 @@ class ProduitController extends Controller
             $stock = $produit->boutiqueProduits->first();
             $produit->stock_actuel = $stock->stock_actuel ?? 0;
             $produit->stock_min = $stock->stock_min ?? 5;
+
             return $produit;
         });
 
@@ -45,6 +48,7 @@ class ProduitController extends Controller
     public function create()
     {
         $categories = Categorie::where('active', true)->get();
+
         return view('produits.create', compact('categories'));
     }
 
@@ -59,7 +63,7 @@ class ProduitController extends Controller
             'stock_min' => 'required|integer|min:0',
             'stock_max' => 'required|integer|min:0',
             'categorie_id' => 'required|exists:categories,id',
-            'image' => ['nullable', 'string', ReglesChamps::NOM_SANS_HTML]
+            'image' => ['nullable', 'string', ReglesChamps::NOM_SANS_HTML],
         ]);
 
         DB::beginTransaction();
@@ -75,7 +79,7 @@ class ProduitController extends Controller
                 'stock_max' => $request->stock_max,
                 'categorie_id' => $request->categorie_id,
                 'image' => $request->image,
-                'active' => true
+                'active' => true,
             ]);
 
             // Catalogue partagé, stock séparé : la boutique courante reçoit le
@@ -95,6 +99,7 @@ class ProduitController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);
+
             return back()->with('error', 'Une erreur est survenue lors de la création du produit.')->withInput();
         }
     }
@@ -130,11 +135,24 @@ class ProduitController extends Controller
             'prix_vente' => 'required|numeric|min:0',
             'categorie_id' => 'required|exists:categories,id',
             'image' => ['nullable', 'string', ReglesChamps::NOM_SANS_HTML],
-            'active' => 'boolean'
+            'active' => 'boolean',
         ]);
         $data['active'] = $request->boolean('active');
 
+        $ancienPrixAchat = (float) $produit->prix_achat;
+        $ancienPrixVente = (float) $produit->prix_vente;
+        $nouveauPrixAchat = (float) $data['prix_achat'];
+        $nouveauPrixVente = (float) $data['prix_vente'];
+
         $produit->update($data);
+
+        if ($ancienPrixAchat !== $nouveauPrixAchat || $ancienPrixVente !== $nouveauPrixVente) {
+            JournalActivite::enregistrer(
+                'produit.prix_modifie',
+                "Prix de « {$produit->nom} » modifié : achat {$ancienPrixAchat} → {$nouveauPrixAchat}, vente {$ancienPrixVente} → {$nouveauPrixVente}.",
+                $produit
+            );
+        }
 
         return redirect()->route('produits.index')
             ->with('success', 'Produit mis à jour avec succès.');
@@ -161,6 +179,7 @@ class ProduitController extends Controller
     public function barcodeAll()
     {
         $produits = Produit::where('active', true)->orderBy('nom')->get();
+
         return view('produits.barcode_all', compact('produits'));
     }
 
@@ -178,9 +197,10 @@ class ProduitController extends Controller
         $file = $request->file('fichier_csv');
         $handle = fopen($file->getRealPath(), 'r');
 
-        $header  = null;
+        $header = null;
+        $ligne = 1;
         $created = 0;
-        $errors  = [];
+        $errors = [];
         $categories = Categorie::pluck('id', 'nom')->toArray();
         $defaultCategorie = Categorie::first()?->id;
         $boutiqueId = BoutiqueContext::id();
@@ -188,20 +208,40 @@ class ProduitController extends Controller
         DB::beginTransaction();
         try {
             while (($row = fgetcsv($handle, 0, ';')) !== false) {
-                if (!$header) {
+                $ligne++;
+
+                if (! $header) {
                     $header = array_map('trim', $row);
+
                     continue;
                 }
 
-                if (count($row) < 4) continue;
+                if (count($row) < 4) {
+                    $errors[] = "Ligne {$ligne} : nombre de colonnes insuffisant.";
+
+                    continue;
+                }
 
                 $data = array_combine($header, array_map('trim', $row));
 
                 $nom = $data['nom'] ?? null;
-                if (!$nom || preg_match('/[<>]/', $nom)) continue;
+                if (! $nom) {
+                    $errors[] = "Ligne {$ligne} : nom manquant.";
+
+                    continue;
+                }
+
+                // Même règle que le formulaire de création (voir ProduitController::store)
+                // pour ne pas avoir deux définitions de ce qu'est un nom valide.
+                $validationNom = Validator::make(['nom' => $nom], ['nom' => ['string', 'max:255', ReglesChamps::NOM_SANS_HTML]]);
+                if ($validationNom->fails()) {
+                    $errors[] = "Ligne {$ligne} : nom « {$nom} » invalide (caractères < ou > interdits).";
+
+                    continue;
+                }
 
                 $categorieId = $defaultCategorie;
-                if (!empty($data['categorie'])) {
+                if (! empty($data['categorie'])) {
                     $categorieId = $categories[$data['categorie']] ?? $defaultCategorie;
                 }
 
@@ -210,16 +250,16 @@ class ProduitController extends Controller
                 $stockMax = (int) ($data['stock_max'] ?? 100);
 
                 $produitImporte = Produit::create([
-                    'reference'    => Produit::generateReference(),
-                    'nom'          => $nom,
-                    'description'  => $data['description'] ?? null,
-                    'prix_achat'   => (float) str_replace(',', '.', $data['prix_achat'] ?? 0),
-                    'prix_vente'   => (float) str_replace(',', '.', $data['prix_vente'] ?? 0),
+                    'reference' => Produit::generateReference(),
+                    'nom' => $nom,
+                    'description' => $data['description'] ?? null,
+                    'prix_achat' => (float) str_replace(',', '.', $data['prix_achat'] ?? 0),
+                    'prix_vente' => (float) str_replace(',', '.', $data['prix_vente'] ?? 0),
                     'stock_actuel' => $stockActuel,
-                    'stock_min'    => $stockMin,
-                    'stock_max'    => $stockMax,
+                    'stock_min' => $stockMin,
+                    'stock_max' => $stockMax,
                     'categorie_id' => $categorieId,
-                    'active'       => true,
+                    'active' => true,
                 ]);
 
                 BoutiqueProduit::initialiserPourNouveauProduit(
@@ -238,11 +278,22 @@ class ProduitController extends Controller
             DB::rollBack();
             fclose($handle);
             report($e);
+
             return back()->with('error', 'Erreur lors de l\'import du fichier. Vérifiez son format et réessayez.');
         }
 
-        return redirect()->route('produits.index')
+        $redirect = redirect()->route('produits.index')
             ->with('success', "$created produit(s) importé(s) avec succès.");
+
+        if (! empty($errors)) {
+            $resume = count($errors) > 5
+                ? implode(' | ', array_slice($errors, 0, 5)).' | … et '.(count($errors) - 5).' autre(s) ligne(s) ignorée(s).'
+                : implode(' | ', $errors);
+
+            $redirect->with('warning', count($errors).' ligne(s) ignorée(s) : '.$resume);
+        }
+
+        return $redirect;
     }
 
     public function exportCsvTemplate()
@@ -252,7 +303,7 @@ class ProduitController extends Controller
 
         return response()->streamDownload(function () {
             $handle = fopen('php://output', 'w');
-            fputs($handle, "\xEF\xBB\xBF");
+            fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['nom', 'description', 'prix_achat', 'prix_vente', 'stock_actuel', 'stock_min', 'stock_max', 'categorie'], ';');
             fputcsv($handle, ['Exemple Produit', 'Description exemple', '1000', '1500', '20', '5', '100', 'Catégorie 1'], ';');
             fclose($handle);

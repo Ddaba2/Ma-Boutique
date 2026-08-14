@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Middleware\AuthenticateMiddleware;
+use App\Http\Middleware\EnsureBoutiqueSelected;
+use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,13 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\SecurityHeadersMiddleware::class,
+            SecurityHeadersMiddleware::class,
         ]);
 
         $middleware->alias([
-            'auth' => \App\Http\Middleware\AuthenticateMiddleware::class,
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-            'boutique' => \App\Http\Middleware\EnsureBoutiqueSelected::class,
+            'auth' => AuthenticateMiddleware::class,
+            'role' => RoleMiddleware::class,
+            'boutique' => EnsureBoutiqueSelected::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

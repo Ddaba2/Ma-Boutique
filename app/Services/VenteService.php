@@ -27,12 +27,12 @@ class VenteService
      *   uuid_client?: ?string,
      *   lignes: array<int, array{produit_id: int, quantite: int, prix_unitaire: float}>,
      * } $data
-     * @param bool $tolererConflitStock Si true, la vente est créée même si le
-     *   stock est insuffisant ou si le montant reçu ne couvre pas le total
-     *   (cas d'une synchronisation hors-ligne tardive : la vente a déjà eu
-     *   lieu physiquement, la rejeter ferait perdre la donnée), et marquée
-     *   conflit_stock=true pour résolution manuelle plutôt que d'être rejetée.
-     *   En flux caisse synchrone, ces deux anomalies sont bloquantes.
+     * @param  bool  $tolererConflitStock  Si true, la vente est créée même si le
+     *                                     stock est insuffisant ou si le montant reçu ne couvre pas le total
+     *                                     (cas d'une synchronisation hors-ligne tardive : la vente a déjà eu
+     *                                     lieu physiquement, la rejeter ferait perdre la donnée), et marquée
+     *                                     conflit_stock=true pour résolution manuelle plutôt que d'être rejetée.
+     *                                     En flux caisse synchrone, ces deux anomalies sont bloquantes.
      */
     public function creerVente(array $data, int $boutiqueId, bool $tolererConflitStock = false): Vente
     {
@@ -60,7 +60,7 @@ class VenteService
                 $stockDisponible = $stockBoutique->stock_actuel ?? 0;
 
                 if ($stockDisponible < $qty) {
-                    if (!$tolererConflitStock) {
+                    if (! $tolererConflitStock) {
                         throw new StockInsuffisantException($produit->nom, $stockDisponible);
                     }
                     $conflit = true;
@@ -82,7 +82,7 @@ class VenteService
             $montantRecu = (float) $data['montant_recu'];
 
             if ($montantRecu < $total) {
-                if (!$tolererConflitStock) {
+                if (! $tolererConflitStock) {
                     throw new MontantInsuffisantException($montantRecu, $total);
                 }
                 $conflit = true;
@@ -136,9 +136,9 @@ class VenteService
                     'prix_unitaire' => $item['prix_unitaire'],
                     'total' => $item['total_ligne'],
                     'reference' => MouvementStock::generateReference(),
-                    'motif' => 'Vente facture ' . $reference,
+                    'motif' => 'Vente facture '.$reference,
                     'date_mouvement' => now(),
-                    'notes' => 'Client: ' . $data['client_nom'],
+                    'notes' => 'Client: '.$data['client_nom'],
                 ]);
             }
 

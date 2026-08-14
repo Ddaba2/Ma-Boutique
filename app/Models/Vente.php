@@ -25,7 +25,7 @@ class Vente extends Model
         'statut',
         'conflit_stock',
         'notes_conflit',
-        'mode_paiement'
+        'mode_paiement',
     ];
 
     protected $casts = [
@@ -48,12 +48,12 @@ class Vente extends Model
     public function produits()
     {
         return $this->belongsToMany(Produit::class, 'detail_ventes')
-                    ->withPivot(['quantite', 'prix_unitaire', 'total_ligne', 'remise']);
+            ->withPivot(['quantite', 'prix_unitaire', 'total_ligne', 'remise']);
     }
 
     public static function generateReference(): string
     {
-        return ReferenceSequence::next('ventes_' . date('Y'), 'VENTE' . date('Y'));
+        return ReferenceSequence::next('ventes_'.date('Y'), 'VENTE'.date('Y'));
     }
 
     public static function libellesModePaiement(): array
